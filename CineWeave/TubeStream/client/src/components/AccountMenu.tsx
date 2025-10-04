@@ -26,12 +26,16 @@ interface AccountMenuProps {
 export default function AccountMenu({ onClose }: AccountMenuProps) {
   const { currentUserId, personalMode, setPersonalMode } = useAppStore();
 
+  const handleSignOut = () => {
+    window.location.href = "/api/logout";
+  };
+
   const menuSections = [
     {
       items: [
         { icon: User, label: "Your channel", action: () => console.log("Your channel") },
         { icon: UserPlus, label: "Switch account", action: () => console.log("Switch account") },
-        { icon: LogOut, label: "Sign out", action: () => console.log("Sign out") }
+        { icon: LogOut, label: "Sign out", action: handleSignOut }
       ]
     },
     {
@@ -43,10 +47,10 @@ export default function AccountMenu({ onClose }: AccountMenuProps) {
     },
     {
       items: [
-        { icon: Palette, label: "Appearance", value: "Device theme", hasArrow: true },
-        { icon: Globe, label: "Language", value: "English", hasArrow: true },
-        { icon: MapPin, label: "Location", value: "India", hasArrow: true },
-        { icon: Keyboard, label: "Keyboard shortcuts", hasArrow: true }
+        { icon: Palette, label: "Appearance", value: "Device theme", hasArrow: true, link: "/appearance" },
+        { icon: Globe, label: "Language", value: "English", hasArrow: true, link: "/language" },
+        { icon: MapPin, label: "Location", value: "India", hasArrow: true, link: "/location" },
+        { icon: Keyboard, label: "Keyboard shortcuts", hasArrow: true, link: "/keyboard-shortcuts" }
       ]
     },
     {

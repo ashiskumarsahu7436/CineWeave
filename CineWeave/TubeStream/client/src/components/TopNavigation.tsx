@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useAppStore } from "@/store/useAppStore";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { useLocation } from "wouter";
 import AccountMenu from "@/components/AccountMenu";
 import logoImage from "@/assets/cineweave-logo.png";
 
@@ -12,6 +13,7 @@ export default function TopNavigation() {
   const [searchQuery, setSearchQuery] = useState("");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const { setSearchQuery: setGlobalSearchQuery, sidebarCollapsed, setSidebarCollapsed } = useAppStore();
+  const [, setLocation] = useLocation();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +70,7 @@ export default function TopNavigation() {
           variant="ghost"
           size="icon"
           className="w-10 h-10 hover:bg-muted relative"
+          onClick={() => setLocation("/notifications")}
           data-testid="button-notifications"
         >
           <Bell className="h-5 w-5" />
