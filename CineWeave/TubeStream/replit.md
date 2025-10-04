@@ -30,10 +30,24 @@ Preferred communication style: Simple, everyday language.
 - Local component state with React hooks
 
 **Key Pages & Features:**
-- Home page with video grid, category filters, and search functionality
-- Spaces page for managing custom channel collections
-- Settings page for user preferences and blocked channel management
-- Layout system with persistent top navigation and sidebar
+- **Home**: Video grid with category filters and search functionality
+- **Shorts**: Vertical short-form video feed
+- **Trending**: Popular videos sorted by view count
+- **Subscriptions**: Latest videos from subscribed channels
+- **Spaces**: Custom channel collections management
+- **Library**: Personal collection hub with playlists, history, watch later, and liked videos
+- **History**: Watch history tracking
+- **Watch Later**: Saved videos for later viewing
+- **Watch**: Full video player page with related videos and comments section
+- **Channel**: Channel profile with videos and about sections
+- **Explore**: Category-specific pages (Gaming, Music, Movies, Live, Shopping, News, Sports, Courses, Fashion, Podcasts)
+- **Settings**: User preferences and blocked channel management
+- **Report History**: Reported content tracking
+- **Help Center**: Support documentation and help topics
+- **Feedback**: User feedback submission form
+- **Account Menu**: Comprehensive account sidebar with profile management, switch account, sign out, premium/studio/purchases links, appearance/language/location settings, and keyboard shortcuts
+- **Notifications**: Visual notification indicator in top navigation
+- Layout system with persistent top navigation and collapsible sidebar
 
 ### Backend Architecture
 
