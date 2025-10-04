@@ -10,11 +10,13 @@ import {
   MapPin, 
   Keyboard,
   ChevronRight,
-  Settings
+  Settings,
+  UserCircle
 } from "lucide-react";
 import { Link } from "wouter";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { useAppStore } from "@/store/useAppStore";
 
 interface AccountMenuProps {
@@ -22,7 +24,7 @@ interface AccountMenuProps {
 }
 
 export default function AccountMenu({ onClose }: AccountMenuProps) {
-  const { currentUserId } = useAppStore();
+  const { currentUserId, personalMode, setPersonalMode } = useAppStore();
 
   const menuSections = [
     {
@@ -68,6 +70,23 @@ export default function AccountMenu({ onClose }: AccountMenuProps) {
             <Link href="/channel/user" className="text-sm text-primary hover:underline">
               View your channel
             </Link>
+          </div>
+        </div>
+
+        <Separator className="my-2" />
+        
+        {/* Personal Mode Toggle */}
+        <div className="py-2">
+          <div className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-muted transition-colors">
+            <div className="flex items-center gap-3">
+              <UserCircle className="h-5 w-5" />
+              <span className="text-sm font-medium">Personal Mode</span>
+            </div>
+            <Switch
+              checked={personalMode}
+              onCheckedChange={setPersonalMode}
+              data-testid="switch-personal-mode"
+            />
           </div>
         </div>
 

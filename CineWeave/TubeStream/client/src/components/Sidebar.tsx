@@ -21,11 +21,8 @@ import {
   Settings,
   Flag,
   HelpCircle,
-  MessageSquare,
-  UserCircle
+  MessageSquare
 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/store/useAppStore";
 import { cn } from "@/lib/utils";
 
@@ -65,7 +62,7 @@ const toolsItems = [
 
 export default function Sidebar() {
   const [location] = useLocation();
-  const { personalMode, setPersonalMode, sidebarCollapsed } = useAppStore();
+  const { sidebarCollapsed } = useAppStore();
 
   const isActive = (path: string) => location === path;
 
@@ -75,21 +72,6 @@ export default function Sidebar() {
       sidebarCollapsed ? "w-20" : "w-60"
     )}>
       <div className="py-2">
-        
-        {/* Personal Mode Toggle */}
-        {!sidebarCollapsed && (
-          <div className="px-4 py-3 flex items-center justify-between border-b border-border">
-            <div className="flex items-center gap-2">
-              <UserCircle className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Personal Mode</span>
-            </div>
-            <Switch
-              checked={personalMode}
-              onCheckedChange={setPersonalMode}
-              data-testid="switch-personal-mode"
-            />
-          </div>
-        )}
         
         {/* Main Navigation */}
         <div className="py-2 border-b border-border">
