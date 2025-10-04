@@ -10,7 +10,7 @@ import AccountMenu from "@/components/AccountMenu";
 export default function TopNavigation() {
   const [searchQuery, setSearchQuery] = useState("");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const { setSearchQuery: setGlobalSearchQuery } = useAppStore();
+  const { setSearchQuery: setGlobalSearchQuery, sidebarCollapsed, setSidebarCollapsed } = useAppStore();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +27,7 @@ export default function TopNavigation() {
           variant="ghost"
           size="icon"
           className="w-10 h-10 hover:bg-muted"
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           data-testid="button-menu"
         >
           <Menu className="h-5 w-5" />
