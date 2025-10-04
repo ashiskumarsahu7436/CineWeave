@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Search, Menu, Bell, Film } from "lucide-react";
+import { Search, Menu, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useAppStore } from "@/store/useAppStore";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import AccountMenu from "@/components/AccountMenu";
+import logoImage from "@/assets/cineweave-logo.png";
 
 export default function TopNavigation() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,7 +34,7 @@ export default function TopNavigation() {
           <Menu className="h-5 w-5" />
         </Button>
         <div className="flex items-center gap-2">
-          <Film className="h-6 w-6 text-primary" />
+          <img src={logoImage} alt="CineWeave Logo" className="h-10 w-10 object-contain" />
           <span className="text-xl font-bold text-foreground">CineWeave</span>
         </div>
       </div>
