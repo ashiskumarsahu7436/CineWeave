@@ -2,10 +2,14 @@ import { useState } from "react";
 import { Search, Menu, Bell, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useAppStore } from "@/store/useAppStore";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import AccountMenu from "@/components/AccountMenu";
 
 export default function TopNavigation() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const { setSearchQuery: setGlobalSearchQuery } = useAppStore();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -61,23 +65,37 @@ export default function TopNavigation() {
         <Button
           variant="ghost"
           size="icon"
-          className="w-10 h-10 hover:bg-muted"
+          className="w-10 h-10 hover:bg-muted relative"
           data-testid="button-notifications"
         >
           <Bell className="h-5 w-5" />
+          <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full"></span>
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="w-10 h-10 overflow-hidden rounded-full p-0"
-          data-testid="button-profile"
-        >
-          <img
-            src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&h=80&fit=crop"
-            alt="User Avatar"
-            className="w-full h-full object-cover"
-          />
-        </Button>
+        
+        <Sheet open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-10 h-10 overflow-hidden rounded-full p-0"
+              data-testid="button-profile"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&h=80&fit=crop"
+                alt="User Avatar"
+                className="w-full h-full object-cover"
+              />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="p-0 w-80">
+            <VisuallyHidden>
+              <SheetHeader>
+                <SheetTitle>Account Menu</SheetTitle>
+              </SheetHeader>
+            </VisuallyHidden>
+            <AccountMenu onClose={() => setAccountMenuOpen(false)} />
+          </SheetContent>
+        </Sheet>
       </div>
     </nav>
   );

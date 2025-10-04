@@ -16,6 +16,9 @@ import Watch from "@/pages/Watch";
 import Channel from "@/pages/Channel";
 import Explore from "@/pages/Explore";
 import Settings from "@/pages/Settings";
+import ReportHistory from "@/pages/ReportHistory";
+import Help from "@/pages/Help";
+import Feedback from "@/pages/Feedback";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -34,6 +37,9 @@ function Router() {
         <Route path="/channel/:id" component={Channel} />
         <Route path="/explore/:category" component={Explore} />
         <Route path="/settings" component={Settings} />
+        <Route path="/report-history" component={ReportHistory} />
+        <Route path="/help" component={Help} />
+        <Route path="/feedback" component={Feedback} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
