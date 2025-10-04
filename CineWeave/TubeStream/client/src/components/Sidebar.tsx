@@ -65,26 +65,31 @@ const toolsItems = [
 
 export default function Sidebar() {
   const [location] = useLocation();
-  const { personalMode, setPersonalMode } = useAppStore();
+  const { personalMode, setPersonalMode, sidebarCollapsed } = useAppStore();
 
   const isActive = (path: string) => location === path;
 
   return (
-    <aside className="fixed left-0 top-14 bottom-0 w-60 bg-background border-r border-border overflow-y-auto sidebar-scrollbar z-40">
+    <aside className={cn(
+      "fixed left-0 top-14 bottom-0 bg-background border-r border-border overflow-y-auto sidebar-scrollbar z-40 transition-all duration-300",
+      sidebarCollapsed ? "w-20" : "w-60"
+    )}>
       <div className="py-2">
         
         {/* Personal Mode Toggle */}
-        <div className="px-4 py-3 flex items-center justify-between border-b border-border">
-          <div className="flex items-center gap-2">
-            <UserCircle className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Personal Mode</span>
+        {!sidebarCollapsed && (
+          <div className="px-4 py-3 flex items-center justify-between border-b border-border">
+            <div className="flex items-center gap-2">
+              <UserCircle className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Personal Mode</span>
+            </div>
+            <Switch
+              checked={personalMode}
+              onCheckedChange={setPersonalMode}
+              data-testid="switch-personal-mode"
+            />
           </div>
-          <Switch
-            checked={personalMode}
-            onCheckedChange={setPersonalMode}
-            data-testid="switch-personal-mode"
-          />
-        </div>
+        )}
         
         {/* Main Navigation */}
         <div className="py-2 border-b border-border">
@@ -95,15 +100,17 @@ export default function Sidebar() {
                 key={item.path}
                 href={item.path}
                 className={cn(
-                  "nav-item flex items-center gap-4 px-4 py-2.5 text-sm font-medium transition-colors",
+                  "nav-item flex items-center py-2.5 text-sm font-medium transition-colors",
+                  sidebarCollapsed ? "justify-center px-0" : "gap-4 px-4",
                   isActive(item.path)
                     ? "active text-primary bg-muted"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
                 data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                title={sidebarCollapsed ? item.label : undefined}
               >
-                <Icon className="h-5 w-5" />
-                <span>{item.label}</span>
+                <Icon className="h-5 w-5 flex-shrink-0" />
+                {!sidebarCollapsed && <span>{item.label}</span>}
               </Link>
             );
           })}
@@ -118,15 +125,17 @@ export default function Sidebar() {
                 key={item.path}
                 href={item.path}
                 className={cn(
-                  "nav-item flex items-center gap-4 px-4 py-2.5 text-sm font-medium transition-colors",
+                  "nav-item flex items-center py-2.5 text-sm font-medium transition-colors",
+                  sidebarCollapsed ? "justify-center px-0" : "gap-4 px-4",
                   isActive(item.path)
                     ? "active text-primary bg-muted"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
                 data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                title={sidebarCollapsed ? item.label : undefined}
               >
-                <Icon className="h-5 w-5" />
-                <span>{item.label}</span>
+                <Icon className="h-5 w-5 flex-shrink-0" />
+                {!sidebarCollapsed && <span>{item.label}</span>}
               </Link>
             );
           })}
@@ -134,9 +143,11 @@ export default function Sidebar() {
         
         {/* Explore Section */}
         <div className="py-2 border-b border-border">
-          <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Explore
-          </div>
+          {!sidebarCollapsed && (
+            <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Explore
+            </div>
+          )}
           {exploreItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -144,15 +155,17 @@ export default function Sidebar() {
                 key={item.path}
                 href={item.path}
                 className={cn(
-                  "nav-item flex items-center gap-4 px-4 py-2.5 text-sm font-medium transition-colors",
+                  "nav-item flex items-center py-2.5 text-sm font-medium transition-colors",
+                  sidebarCollapsed ? "justify-center px-0" : "gap-4 px-4",
                   isActive(item.path)
                     ? "active text-primary bg-muted"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
                 data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                title={sidebarCollapsed ? item.label : undefined}
               >
-                <Icon className="h-5 w-5" />
-                <span>{item.label}</span>
+                <Icon className="h-5 w-5 flex-shrink-0" />
+                {!sidebarCollapsed && <span>{item.label}</span>}
               </Link>
             );
           })}
@@ -167,54 +180,58 @@ export default function Sidebar() {
                 key={item.path}
                 href={item.path}
                 className={cn(
-                  "nav-item flex items-center gap-4 px-4 py-2.5 text-sm font-medium transition-colors",
+                  "nav-item flex items-center py-2.5 text-sm font-medium transition-colors",
+                  sidebarCollapsed ? "justify-center px-0" : "gap-4 px-4",
                   isActive(item.path)
                     ? "active text-primary bg-muted"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
                 data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                title={sidebarCollapsed ? item.label : undefined}
               >
-                <Icon className="h-5 w-5" />
-                <span>{item.label}</span>
+                <Icon className="h-5 w-5 flex-shrink-0" />
+                {!sidebarCollapsed && <span>{item.label}</span>}
               </Link>
             );
           })}
         </div>
         
         {/* Footer Links */}
-        <div className="px-4 py-4">
-          <div className="text-xs text-muted-foreground space-y-1">
-            <div className="flex flex-wrap gap-x-2">
-              <a href="#" className="hover:text-foreground" data-testid="link-about">About</a>
-              <a href="#" className="hover:text-foreground" data-testid="link-press">Press</a>
-              <a href="#" className="hover:text-foreground" data-testid="link-copyright">Copyright</a>
-            </div>
-            <div className="flex flex-wrap gap-x-2">
-              <a href="#" className="hover:text-foreground" data-testid="link-contact">Contact us</a>
-              <a href="#" className="hover:text-foreground" data-testid="link-creators">Creators</a>
-            </div>
-            <div className="flex flex-wrap gap-x-2">
-              <a href="#" className="hover:text-foreground" data-testid="link-advertise">Advertise</a>
-              <a href="#" className="hover:text-foreground" data-testid="link-developers">Developers</a>
-            </div>
-            <div className="flex flex-wrap gap-x-2 mt-2">
-              <a href="#" className="hover:text-foreground" data-testid="link-terms">Terms</a>
-              <a href="#" className="hover:text-foreground" data-testid="link-privacy">Privacy</a>
-            </div>
-            <div className="flex flex-wrap gap-x-2">
-              <a href="#" className="hover:text-foreground" data-testid="link-policy">Policy & Safety</a>
-            </div>
-            <div className="flex flex-wrap gap-x-2">
-              <a href="#" className="hover:text-foreground" data-testid="link-how-works">How CineWeave works</a>
-            </div>
-            <div className="flex flex-wrap gap-x-2">
-              <a href="#" className="hover:text-foreground" data-testid="link-test-features">Test new features</a>
-            </div>
-            <div className="mt-3 text-muted-foreground/70">
-              © 2025 CineWeave Pvt. Ltd.
+        {!sidebarCollapsed && (
+          <div className="px-4 py-4">
+            <div className="text-xs text-muted-foreground space-y-1">
+              <div className="flex flex-wrap gap-x-2">
+                <a href="#" className="hover:text-foreground" data-testid="link-about">About</a>
+                <a href="#" className="hover:text-foreground" data-testid="link-press">Press</a>
+                <a href="#" className="hover:text-foreground" data-testid="link-copyright">Copyright</a>
+              </div>
+              <div className="flex flex-wrap gap-x-2">
+                <a href="#" className="hover:text-foreground" data-testid="link-contact">Contact us</a>
+                <a href="#" className="hover:text-foreground" data-testid="link-creators">Creators</a>
+              </div>
+              <div className="flex flex-wrap gap-x-2">
+                <a href="#" className="hover:text-foreground" data-testid="link-advertise">Advertise</a>
+                <a href="#" className="hover:text-foreground" data-testid="link-developers">Developers</a>
+              </div>
+              <div className="flex flex-wrap gap-x-2 mt-2">
+                <a href="#" className="hover:text-foreground" data-testid="link-terms">Terms</a>
+                <a href="#" className="hover:text-foreground" data-testid="link-privacy">Privacy</a>
+              </div>
+              <div className="flex flex-wrap gap-x-2">
+                <a href="#" className="hover:text-foreground" data-testid="link-policy">Policy & Safety</a>
+              </div>
+              <div className="flex flex-wrap gap-x-2">
+                <a href="#" className="hover:text-foreground" data-testid="link-how-works">How CineWeave works</a>
+              </div>
+              <div className="flex flex-wrap gap-x-2">
+                <a href="#" className="hover:text-foreground" data-testid="link-test-features">Test new features</a>
+              </div>
+              <div className="mt-3 text-muted-foreground/70">
+                © 2025 CineWeave Pvt. Ltd.
+              </div>
             </div>
           </div>
-        </div>
+        )}
         
       </div>
     </aside>
