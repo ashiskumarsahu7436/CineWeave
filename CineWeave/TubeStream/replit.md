@@ -25,7 +25,7 @@ Preferred communication style: Simple, everyday language.
 - Component library includes 40+ pre-built components (buttons, dialogs, forms, etc.)
 
 **State Management:**
-- Zustand for global app state (personal mode toggle, search queries, current user)
+- Zustand for global app state (personal mode toggle, sidebar collapsed state, search queries, current user)
 - TanStack Query (React Query) for server state management and data fetching
 - Local component state with React hooks
 
@@ -47,7 +47,7 @@ Preferred communication style: Simple, everyday language.
 - **Feedback**: User feedback submission form
 - **Account Menu**: Comprehensive account sidebar with profile management, switch account, sign out, premium/studio/purchases links, appearance/language/location settings, and keyboard shortcuts
 - **Notifications**: Visual notification indicator in top navigation
-- Layout system with persistent top navigation and collapsible sidebar
+- **Collapsible Sidebar**: YouTube-style collapsible navigation - click the menu button (three lines) to toggle between expanded mode (icons + labels, 240px width) and collapsed mode (icons only, 80px width) with smooth 300ms transitions. Main content area automatically adjusts margins to match sidebar width
 
 ### Backend Architecture
 
