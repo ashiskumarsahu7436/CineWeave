@@ -132,3 +132,97 @@ The Neon HTTP driver has a bug where querying empty tables throws `TypeError: Ca
 - connect-pg-simple for PostgreSQL session storage
 - Express session middleware with secure cookie configuration
 - 7-day session TTL with automatic cleanup
+
+## Project Structure
+
+The project follows a clean, flattened structure optimized for deployment:
+
+```
+/
+├── client/              # React frontend application
+│   ├── src/            # Source files (components, pages, hooks, etc.)
+│   └── index.html      # Entry HTML file
+├── server/             # Express backend application
+│   ├── index.ts        # Server entry point
+│   ├── routes.ts       # API route handlers
+│   ├── storage.ts      # Database storage layer
+│   ├── vite.ts         # Vite dev server setup
+│   └── seed.ts         # Database seeding script
+├── shared/             # Shared code between frontend/backend
+│   └── schema.ts       # Drizzle database schema
+├── dist/               # Production build output (generated)
+│   ├── index.js        # Bundled server code
+│   └── public/         # Built client assets
+├── package.json        # Dependencies and scripts
+├── vite.config.ts      # Vite configuration
+├── tsconfig.json       # TypeScript configuration
+└── drizzle.config.ts   # Drizzle ORM configuration
+```
+
+**Recent Changes (October 2025):**
+- Project restructured from nested CineWeave/TubeStream/ folders to root directory
+- Optimized for deployment to external platforms (Render, Vercel, Railway, etc.)
+- Clean build pipeline: client → dist/public, server → dist/index.js
+
+## Deployment Instructions
+
+### Deploying to Render (or similar platforms)
+
+**1. Push to GitHub:**
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git remote add origin <your-github-repo-url>
+git push -u origin main
+```
+
+**2. Configure on Render:**
+
+- **Build Command:** `npm run build`
+- **Start Command:** `npm run start`
+- **Environment Variables:**
+  - `DATABASE_URL` - PostgreSQL connection string (provision a Postgres database on Render)
+  - `NODE_ENV=production`
+  - `SESSION_SECRET` - Random string for session encryption
+  - `PORT` - Automatically set by Render (defaults to 5000 if not set)
+
+**3. Database Setup:**
+After deployment, run migrations:
+```bash
+npm run db:push
+npm run db:seed  # Optional: seed with sample data
+```
+
+### Local Development
+
+```bash
+# Install dependencies
+npm install
+
+# Set up environment variables
+# DATABASE_URL will be provided by Replit database
+
+# Push database schema
+npm run db:push
+
+# Seed database (optional)
+npm run db:seed
+
+# Start development server
+npm run dev
+```
+
+### Production Build
+
+```bash
+# Build both client and server
+npm run build
+
+# Start production server
+npm run start
+```
+
+The production build creates:
+- `dist/public/` - Static client assets served by Express
+- `dist/index.js` - Bundled server application
