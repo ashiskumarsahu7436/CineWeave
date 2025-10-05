@@ -7,7 +7,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useLocation } from "wouter";
 import AccountMenu from "@/components/AccountMenu";
-import logoImage from "@/assets/cineweave-logo.png";
+import logoImage from "@/assets/cineweave-logo.svg";
 
 export default function TopNavigation() {
   const [searchQuery, setSearchQuery] = useState("");
