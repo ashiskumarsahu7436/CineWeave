@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertChannelSchema, insertVideoSchema, insertSpaceSchema, insertSubscriptionSchema } from "@shared/schema";
+import { insertUserSchema, insertChannelSchema, insertVideoSchema, insertSpaceSchema, insertSubscriptionSchema, insertCommentSchema, insertLikeSchema, insertWatchHistorySchema, insertPlaylistSchema, insertPlaylistVideoSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -226,6 +226,222 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const blockedChannels = await storage.getBlockedChannels(req.params.userId);
       res.json(blockedChannels);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Comment routes
+  app.post("/api/videos/:videoId/comments", async (req, res) => {
+    try {
+      const commentData = insertCommentSchema.parse({
+        ...req.body,
+        videoId: req.params.videoId
+      });
+      const comment = await storage.createComment(commentData);
+      res.status(201).json(comment);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid comment data" });
+    }
+  });
+
+  app.get("/api/videos/:videoId/comments", async (req, res) => {
+    try {
+      const { limit, offset, sortBy } = req.query;
+      const comments = await storage.getCommentsByVideo(
+        req.params.videoId,
+        limit ? parseInt(limit as string) : undefined,
+        offset ? parseInt(offset as string) : undefined,
+        sortBy as string
+      );
+      res.json(comments);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/comments/:id", async (req, res) => {
+    try {
+      const comment = await storage.updateComment(req.params.id, req.body);
+      if (!comment) {
+        return res.status(404).json({ message: "Comment not found" });
+      }
+      res.json(comment);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/comments/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteComment(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Comment not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/comments/:id/like", async (req, res) => {
+    try {
+      const liked = await storage.likeComment(req.params.id);
+      if (!liked) {
+        return res.status(404).json({ message: "Comment not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Like routes
+  app.post("/api/videos/:videoId/like", async (req, res) => {
+    try {
+      const likeData = insertLikeSchema.parse({
+        ...req.body,
+        videoId: req.params.videoId
+      });
+      const result = await storage.toggleLike(likeData);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid like data" });
+    }
+  });
+
+  app.get("/api/videos/:videoId/likes", async (req, res) => {
+    try {
+      const counts = await storage.getLikeCounts(req.params.videoId);
+      res.json(counts);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/videos/:videoId/user-like/:userId", async (req, res) => {
+    try {
+      const userLike = await storage.getUserLike(req.params.userId, req.params.videoId);
+      res.json(userLike || null);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Watch history routes
+  app.post("/api/watch-history", async (req, res) => {
+    try {
+      const historyData = insertWatchHistorySchema.parse(req.body);
+      const history = await storage.addToWatchHistory(historyData);
+      res.status(201).json(history);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid watch history data" });
+    }
+  });
+
+  app.get("/api/watch-history/:userId", async (req, res) => {
+    try {
+      const { limit, offset } = req.query;
+      const history = await storage.getWatchHistory(
+        req.params.userId,
+        limit ? parseInt(limit as string) : undefined,
+        offset ? parseInt(offset as string) : undefined
+      );
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/watch-history/:userId", async (req, res) => {
+    try {
+      const cleared = await storage.clearWatchHistory(req.params.userId);
+      if (!cleared) {
+        return res.status(404).json({ message: "No watch history found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Playlist routes
+  app.post("/api/playlists", async (req, res) => {
+    try {
+      const playlistData = insertPlaylistSchema.parse(req.body);
+      const playlist = await storage.createPlaylist(playlistData);
+      res.status(201).json(playlist);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid playlist data" });
+    }
+  });
+
+  app.get("/api/playlists/:userId", async (req, res) => {
+    try {
+      const playlists = await storage.getPlaylistsByUser(req.params.userId);
+      res.json(playlists);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/playlists/:id", async (req, res) => {
+    try {
+      const playlist = await storage.updatePlaylist(req.params.id, req.body);
+      if (!playlist) {
+        return res.status(404).json({ message: "Playlist not found" });
+      }
+      res.json(playlist);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/playlists/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deletePlaylist(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Playlist not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/playlists/:id/videos", async (req, res) => {
+    try {
+      const playlistVideoData = insertPlaylistVideoSchema.parse({
+        ...req.body,
+        playlistId: req.params.id
+      });
+      const playlistVideo = await storage.addVideoToPlaylist(playlistVideoData);
+      res.status(201).json(playlistVideo);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid playlist video data" });
+    }
+  });
+
+  app.delete("/api/playlists/:playlistId/videos/:videoId", async (req, res) => {
+    try {
+      const removed = await storage.removeVideoFromPlaylist(req.params.playlistId, req.params.videoId);
+      if (!removed) {
+        return res.status(404).json({ message: "Video not found in playlist" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Video view count route
+  app.post("/api/videos/:videoId/view", async (req, res) => {
+    try {
+      const incremented = await storage.incrementViewCount(req.params.videoId);
+      if (!incremented) {
+        return res.status(404).json({ message: "Video not found" });
+      }
+      res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }

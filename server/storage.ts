@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type UpsertUser, type Channel, type InsertChannel, type Video, type InsertVideo, type Space, type InsertSpace, type Subscription, type InsertSubscription, type VideoWithChannel, type SpaceWithChannels } from "@shared/schema";
+import { type User, type InsertUser, type UpsertUser, type Channel, type InsertChannel, type Video, type InsertVideo, type Space, type InsertSpace, type Subscription, type InsertSubscription, type Comment, type InsertComment, type Like, type InsertLike, type WatchHistory, type InsertWatchHistory, type Playlist, type InsertPlaylist, type PlaylistVideo, type InsertPlaylistVideo, type VideoWithChannel, type SpaceWithChannels } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -22,6 +22,7 @@ export interface IStorage {
   getVideosByChannels(channelIds: string[]): Promise<VideoWithChannel[]>;
   createVideo(video: InsertVideo): Promise<Video>;
   searchVideos(query: string): Promise<VideoWithChannel[]>;
+  incrementViewCount(videoId: string): Promise<boolean>;
 
   // Space methods
   getSpace(id: string): Promise<Space | undefined>;
@@ -40,6 +41,34 @@ export interface IStorage {
   blockChannel(userId: string, channelId: string): Promise<boolean>;
   unblockChannel(userId: string, channelId: string): Promise<boolean>;
   getBlockedChannels(userId: string): Promise<Channel[]>;
+
+  // Comment methods
+  getComment(id: string): Promise<Comment | undefined>;
+  getCommentsByVideo(videoId: string, limit?: number, offset?: number, sortBy?: string): Promise<Comment[]>;
+  createComment(comment: InsertComment): Promise<Comment>;
+  updateComment(id: string, updates: Partial<Comment>): Promise<Comment | undefined>;
+  deleteComment(id: string): Promise<boolean>;
+  likeComment(commentId: string): Promise<boolean>;
+
+  // Like methods
+  toggleLike(like: InsertLike): Promise<Like | null>;
+  getLikeCounts(videoId: string): Promise<{ likes: number; dislikes: number }>;
+  getUserLike(userId: string, videoId: string): Promise<Like | undefined>;
+
+  // Watch History methods
+  addToWatchHistory(history: InsertWatchHistory): Promise<WatchHistory>;
+  getWatchHistory(userId: string, limit?: number, offset?: number): Promise<WatchHistory[]>;
+  clearWatchHistory(userId: string): Promise<boolean>;
+
+  // Playlist methods
+  getPlaylist(id: string): Promise<Playlist | undefined>;
+  getPlaylistsByUser(userId: string): Promise<Playlist[]>;
+  createPlaylist(playlist: InsertPlaylist): Promise<Playlist>;
+  updatePlaylist(id: string, updates: Partial<Playlist>): Promise<Playlist | undefined>;
+  deletePlaylist(id: string): Promise<boolean>;
+  addVideoToPlaylist(playlistVideo: InsertPlaylistVideo): Promise<PlaylistVideo>;
+  removeVideoFromPlaylist(playlistId: string, videoId: string): Promise<boolean>;
+  getPlaylistVideos(playlistId: string): Promise<PlaylistVideo[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -48,6 +77,11 @@ export class MemStorage implements IStorage {
   private videos: Map<string, Video> = new Map();
   private spaces: Map<string, Space> = new Map();
   private subscriptions: Map<string, Subscription> = new Map();
+  private comments: Map<string, Comment> = new Map();
+  private likes: Map<string, Like> = new Map();
+  private watchHistory: Map<string, WatchHistory> = new Map();
+  private playlists: Map<string, Playlist> = new Map();
+  private playlistVideos: Map<string, PlaylistVideo> = new Map();
 
   constructor() {
     this.seedData();
@@ -90,6 +124,7 @@ export class MemStorage implements IStorage {
         id: "v1",
         title: "Uncharted Ruins of Eldoris",
         thumbnail: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=480&h=270&fit=crop",
+        videoUrl: "https://example.com/videos/v1.mp4",
         duration: "12:48",
         views: 1200000,
         channelId: "ch1",
@@ -102,6 +137,7 @@ export class MemStorage implements IStorage {
         id: "v2",
         title: "Exploration X: The Hidden Valleys",
         thumbnail: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=480&h=270&fit=crop",
+        videoUrl: "https://example.com/videos/v2.mp4",
         duration: "22:48",
         views: 1200000,
         channelId: "ch2",
@@ -114,6 +150,7 @@ export class MemStorage implements IStorage {
         id: "v3",
         title: "Pro Tournament Live: Finals Day",
         thumbnail: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=480&h=270&fit=crop",
+        videoUrl: "https://example.com/videos/v3-live.mp4",
         duration: "",
         views: 45000,
         channelId: "ch1",
@@ -140,7 +177,19 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id, personalMode: false, blockedChannels: [] };
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      personalMode: false, 
+      blockedChannels: [],
+      username: insertUser.username ?? null,
+      email: insertUser.email ?? null,
+      firstName: insertUser.firstName ?? null,
+      lastName: insertUser.lastName ?? null,
+      profileImageUrl: insertUser.profileImageUrl ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
     this.users.set(id, user);
     return user;
   }
@@ -346,11 +395,227 @@ export class MemStorage implements IStorage {
     
     return (user.blockedChannels || []).map(id => this.channels.get(id)!).filter(Boolean);
   }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const existingUser = this.users.get(userData.id ?? '');
+    if (existingUser && userData.id) {
+      const updatedUser = { ...existingUser, ...userData, id: userData.id, updatedAt: new Date() };
+      this.users.set(userData.id, updatedUser);
+      return updatedUser;
+    }
+    const id = userData.id ?? randomUUID();
+    const newUser: User = { 
+      id,
+      username: userData.username ?? null,
+      email: userData.email ?? null,
+      firstName: userData.firstName ?? null,
+      lastName: userData.lastName ?? null,
+      profileImageUrl: userData.profileImageUrl ?? null,
+      personalMode: userData.personalMode ?? false, 
+      blockedChannels: userData.blockedChannels ?? [],
+      createdAt: userData.createdAt ?? new Date(),
+      updatedAt: new Date()
+    };
+    this.users.set(id, newUser);
+    return newUser;
+  }
+
+  async incrementViewCount(videoId: string): Promise<boolean> {
+    const video = this.videos.get(videoId);
+    if (!video) return false;
+    
+    video.views = (video.views || 0) + 1;
+    this.videos.set(videoId, video);
+    return true;
+  }
+
+  async getComment(id: string): Promise<Comment | undefined> {
+    return this.comments.get(id);
+  }
+
+  async getCommentsByVideo(videoId: string, limit: number = 50, offset: number = 0, sortBy: string = 'createdAt'): Promise<Comment[]> {
+    let comments = Array.from(this.comments.values()).filter(comment => comment.videoId === videoId);
+    
+    if (sortBy === 'likes') {
+      comments.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    } else {
+      comments.sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime());
+    }
+    
+    return comments.slice(offset, offset + limit);
+  }
+
+  async createComment(insertComment: InsertComment): Promise<Comment> {
+    const id = randomUUID();
+    const comment: Comment = { 
+      ...insertComment,
+      id,
+      parentId: insertComment.parentId ?? null,
+      likes: 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.comments.set(id, comment);
+    return comment;
+  }
+
+  async updateComment(id: string, updates: Partial<Comment>): Promise<Comment | undefined> {
+    const comment = this.comments.get(id);
+    if (!comment) return undefined;
+    
+    const updatedComment = { ...comment, ...updates, updatedAt: new Date() };
+    this.comments.set(id, updatedComment);
+    return updatedComment;
+  }
+
+  async deleteComment(id: string): Promise<boolean> {
+    return this.comments.delete(id);
+  }
+
+  async likeComment(commentId: string): Promise<boolean> {
+    const comment = this.comments.get(commentId);
+    if (!comment) return false;
+    
+    comment.likes = (comment.likes || 0) + 1;
+    this.comments.set(commentId, comment);
+    return true;
+  }
+
+  async toggleLike(insertLike: InsertLike): Promise<Like | null> {
+    const existingLike = Array.from(this.likes.values()).find(
+      like => like.userId === insertLike.userId && like.videoId === insertLike.videoId
+    );
+
+    if (existingLike) {
+      if (existingLike.type === insertLike.type) {
+        this.likes.delete(existingLike.id);
+        return null;
+      } else {
+        existingLike.type = insertLike.type;
+        this.likes.set(existingLike.id, existingLike);
+        return existingLike;
+      }
+    }
+
+    const id = randomUUID();
+    const like: Like = { ...insertLike, id, createdAt: new Date() };
+    this.likes.set(id, like);
+    return like;
+  }
+
+  async getLikeCounts(videoId: string): Promise<{ likes: number; dislikes: number }> {
+    const videoLikes = Array.from(this.likes.values()).filter(like => like.videoId === videoId);
+    const likes = videoLikes.filter(like => like.type === 'like').length;
+    const dislikes = videoLikes.filter(like => like.type === 'dislike').length;
+    return { likes, dislikes };
+  }
+
+  async getUserLike(userId: string, videoId: string): Promise<Like | undefined> {
+    return Array.from(this.likes.values()).find(
+      like => like.userId === userId && like.videoId === videoId
+    );
+  }
+
+  async addToWatchHistory(insertHistory: InsertWatchHistory): Promise<WatchHistory> {
+    const id = randomUUID();
+    const history: WatchHistory = { 
+      ...insertHistory, 
+      id, 
+      watchedAt: new Date()
+    };
+    this.watchHistory.set(id, history);
+    return history;
+  }
+
+  async getWatchHistory(userId: string, limit: number = 50, offset: number = 0): Promise<WatchHistory[]> {
+    const history = Array.from(this.watchHistory.values())
+      .filter(h => h.userId === userId)
+      .sort((a, b) => b.watchedAt!.getTime() - a.watchedAt!.getTime());
+    
+    return history.slice(offset, offset + limit);
+  }
+
+  async clearWatchHistory(userId: string): Promise<boolean> {
+    const userHistory = Array.from(this.watchHistory.entries())
+      .filter(([_, h]) => h.userId === userId);
+    
+    userHistory.forEach(([id, _]) => this.watchHistory.delete(id));
+    return true;
+  }
+
+  async getPlaylist(id: string): Promise<Playlist | undefined> {
+    return this.playlists.get(id);
+  }
+
+  async getPlaylistsByUser(userId: string): Promise<Playlist[]> {
+    return Array.from(this.playlists.values()).filter(playlist => playlist.userId === userId);
+  }
+
+  async createPlaylist(insertPlaylist: InsertPlaylist): Promise<Playlist> {
+    const id = randomUUID();
+    const playlist: Playlist = { 
+      ...insertPlaylist,
+      id,
+      description: insertPlaylist.description ?? null,
+      isPublic: insertPlaylist.isPublic ?? false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.playlists.set(id, playlist);
+    return playlist;
+  }
+
+  async updatePlaylist(id: string, updates: Partial<Playlist>): Promise<Playlist | undefined> {
+    const playlist = this.playlists.get(id);
+    if (!playlist) return undefined;
+    
+    const updatedPlaylist = { ...playlist, ...updates, updatedAt: new Date() };
+    this.playlists.set(id, updatedPlaylist);
+    return updatedPlaylist;
+  }
+
+  async deletePlaylist(id: string): Promise<boolean> {
+    const deleted = this.playlists.delete(id);
+    if (deleted) {
+      const playlistVideosToDelete = Array.from(this.playlistVideos.entries())
+        .filter(([_, pv]) => pv.playlistId === id);
+      playlistVideosToDelete.forEach(([id, _]) => this.playlistVideos.delete(id));
+    }
+    return deleted;
+  }
+
+  async addVideoToPlaylist(insertPlaylistVideo: InsertPlaylistVideo): Promise<PlaylistVideo> {
+    const id = randomUUID();
+    const playlistVideo: PlaylistVideo = { 
+      ...insertPlaylistVideo, 
+      id, 
+      addedAt: new Date()
+    };
+    this.playlistVideos.set(id, playlistVideo);
+    return playlistVideo;
+  }
+
+  async removeVideoFromPlaylist(playlistId: string, videoId: string): Promise<boolean> {
+    const playlistVideo = Array.from(this.playlistVideos.entries()).find(
+      ([_, pv]) => pv.playlistId === playlistId && pv.videoId === videoId
+    );
+    
+    if (playlistVideo) {
+      return this.playlistVideos.delete(playlistVideo[0]);
+    }
+    return false;
+  }
+
+  async getPlaylistVideos(playlistId: string): Promise<PlaylistVideo[]> {
+    return Array.from(this.playlistVideos.values())
+      .filter(pv => pv.playlistId === playlistId)
+      .sort((a, b) => a.position - b.position);
+  }
 }
 
 import { db } from "./db";
-import { users, channels, videos, spaces, subscriptions } from "@shared/schema";
-import { eq, and, or, ilike, inArray, sql } from "drizzle-orm";
+import { users, channels, videos, spaces, subscriptions, comments, likes, watchHistory, playlists, playlistVideos } from "@shared/schema";
+import { eq, and, or, ilike, inArray, sql, desc } from "drizzle-orm";
 
 export class DbStorage implements IStorage {
   private normalizeArray<T>(result: T[] | null): T[] {
@@ -517,7 +782,7 @@ export class DbStorage implements IStorage {
   }
 
   async getSpacesByUser(userId: string): Promise<SpaceWithChannels[]> {
-    let userSpaces;
+    let userSpaces: Space[];
     try {
       userSpaces = await db.select().from(spaces).where(eq(spaces.userId, userId));
       userSpaces = this.normalizeArray(userSpaces);
@@ -533,7 +798,7 @@ export class DbStorage implements IStorage {
     const spacesWithChannels = await Promise.all(
       userSpaces.map(async (space) => {
         const channelIds = space.channelIds || [];
-        let spaceChannels;
+        let spaceChannels: Channel[];
         try {
           spaceChannels = channelIds.length > 0
             ? await db.select().from(channels).where(inArray(channels.id, channelIds))
@@ -649,6 +914,227 @@ export class DbStorage implements IStorage {
     } catch (error) {
       if (this.isNeonNullError(error)) {
         console.log("Neon null result detected in getBlockedChannels, returning empty array");
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async incrementViewCount(videoId: string): Promise<boolean> {
+    const result = await db
+      .update(videos)
+      .set({ views: sql`${videos.views} + 1` })
+      .where(eq(videos.id, videoId))
+      .returning();
+    return result.length > 0;
+  }
+
+  async getComment(id: string): Promise<Comment | undefined> {
+    const result = await db.select().from(comments).where(eq(comments.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getCommentsByVideo(videoId: string, limit: number = 50, offset: number = 0, sortBy: string = 'createdAt'): Promise<Comment[]> {
+    try {
+      let query = db
+        .select()
+        .from(comments)
+        .where(eq(comments.videoId, videoId))
+        .limit(limit)
+        .offset(offset);
+
+      if (sortBy === 'likes') {
+        query = query.orderBy(desc(comments.likes)) as any;
+      } else {
+        query = query.orderBy(desc(comments.createdAt)) as any;
+      }
+
+      const result = await query;
+      return this.normalizeArray(result);
+    } catch (error) {
+      if (this.isNeonNullError(error)) {
+        console.log("Neon null result detected in getCommentsByVideo, returning empty array");
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async createComment(insertComment: InsertComment): Promise<Comment> {
+    const result = await db.insert(comments).values(insertComment).returning();
+    return result[0];
+  }
+
+  async updateComment(id: string, updates: Partial<Comment>): Promise<Comment | undefined> {
+    const result = await db
+      .update(comments)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(comments.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteComment(id: string): Promise<boolean> {
+    const result = await db.delete(comments).where(eq(comments.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async likeComment(commentId: string): Promise<boolean> {
+    const result = await db
+      .update(comments)
+      .set({ likes: sql`${comments.likes} + 1` })
+      .where(eq(comments.id, commentId))
+      .returning();
+    return result.length > 0;
+  }
+
+  async toggleLike(insertLike: InsertLike): Promise<Like | null> {
+    const existingLike = await db
+      .select()
+      .from(likes)
+      .where(and(eq(likes.userId, insertLike.userId), eq(likes.videoId, insertLike.videoId)))
+      .limit(1);
+
+    if (existingLike.length > 0) {
+      const existing = existingLike[0];
+      if (existing.type === insertLike.type) {
+        await db
+          .delete(likes)
+          .where(and(eq(likes.userId, insertLike.userId), eq(likes.videoId, insertLike.videoId)));
+        return null;
+      } else {
+        const updated = await db
+          .update(likes)
+          .set({ type: insertLike.type })
+          .where(and(eq(likes.userId, insertLike.userId), eq(likes.videoId, insertLike.videoId)))
+          .returning();
+        return updated[0];
+      }
+    }
+
+    const result = await db.insert(likes).values(insertLike).returning();
+    return result[0];
+  }
+
+  async getLikeCounts(videoId: string): Promise<{ likes: number; dislikes: number }> {
+    const result = await db
+      .select({
+        type: likes.type,
+        count: sql<number>`count(*)`,
+      })
+      .from(likes)
+      .where(eq(likes.videoId, videoId))
+      .groupBy(likes.type);
+
+    const likesCount = result.find(r => r.type === 'like')?.count || 0;
+    const dislikesCount = result.find(r => r.type === 'dislike')?.count || 0;
+
+    return {
+      likes: Number(likesCount),
+      dislikes: Number(dislikesCount),
+    };
+  }
+
+  async getUserLike(userId: string, videoId: string): Promise<Like | undefined> {
+    const result = await db
+      .select()
+      .from(likes)
+      .where(and(eq(likes.userId, userId), eq(likes.videoId, videoId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async addToWatchHistory(insertHistory: InsertWatchHistory): Promise<WatchHistory> {
+    const result = await db.insert(watchHistory).values(insertHistory).returning();
+    return result[0];
+  }
+
+  async getWatchHistory(userId: string, limit: number = 50, offset: number = 0): Promise<WatchHistory[]> {
+    try {
+      const result = await db
+        .select()
+        .from(watchHistory)
+        .where(eq(watchHistory.userId, userId))
+        .orderBy(desc(watchHistory.watchedAt))
+        .limit(limit)
+        .offset(offset);
+      return this.normalizeArray(result);
+    } catch (error) {
+      if (this.isNeonNullError(error)) {
+        console.log("Neon null result detected in getWatchHistory, returning empty array");
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async clearWatchHistory(userId: string): Promise<boolean> {
+    const result = await db.delete(watchHistory).where(eq(watchHistory.userId, userId)).returning();
+    return result.length > 0;
+  }
+
+  async getPlaylist(id: string): Promise<Playlist | undefined> {
+    const result = await db.select().from(playlists).where(eq(playlists.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getPlaylistsByUser(userId: string): Promise<Playlist[]> {
+    try {
+      const result = await db.select().from(playlists).where(eq(playlists.userId, userId));
+      return this.normalizeArray(result);
+    } catch (error) {
+      if (this.isNeonNullError(error)) {
+        console.log("Neon null result detected in getPlaylistsByUser, returning empty array");
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async createPlaylist(insertPlaylist: InsertPlaylist): Promise<Playlist> {
+    const result = await db.insert(playlists).values(insertPlaylist).returning();
+    return result[0];
+  }
+
+  async updatePlaylist(id: string, updates: Partial<Playlist>): Promise<Playlist | undefined> {
+    const result = await db
+      .update(playlists)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(playlists.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deletePlaylist(id: string): Promise<boolean> {
+    await db.delete(playlistVideos).where(eq(playlistVideos.playlistId, id));
+    const result = await db.delete(playlists).where(eq(playlists.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async addVideoToPlaylist(insertPlaylistVideo: InsertPlaylistVideo): Promise<PlaylistVideo> {
+    const result = await db.insert(playlistVideos).values(insertPlaylistVideo).returning();
+    return result[0];
+  }
+
+  async removeVideoFromPlaylist(playlistId: string, videoId: string): Promise<boolean> {
+    const result = await db
+      .delete(playlistVideos)
+      .where(and(eq(playlistVideos.playlistId, playlistId), eq(playlistVideos.videoId, videoId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async getPlaylistVideos(playlistId: string): Promise<PlaylistVideo[]> {
+    try {
+      const result = await db
+        .select()
+        .from(playlistVideos)
+        .where(eq(playlistVideos.playlistId, playlistId))
+        .orderBy(playlistVideos.position);
+      return this.normalizeArray(result);
+    } catch (error) {
+      if (this.isNeonNullError(error)) {
+        console.log("Neon null result detected in getPlaylistVideos, returning empty array");
         return [];
       }
       throw error;
