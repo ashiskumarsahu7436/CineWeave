@@ -35,3 +35,11 @@ coverage/
 # Misc
 *.tsbuildinfo
 .cache/
+
+# Drizzle
+migrations/
+drizzle/
+
+# Local development
+.local/
+.replit
