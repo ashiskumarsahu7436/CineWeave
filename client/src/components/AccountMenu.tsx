@@ -75,7 +75,7 @@ export default function AccountMenu({ onClose }: AccountMenuProps) {
     {
       items: [
         { icon: Crown, label: "CineWeave Premium", action: () => console.log("Premium") },
-        { icon: Video, label: "CineWeave Studio", action: () => console.log("Studio") },
+        { icon: Video, label: "CineWeave Studio", link: "/studio" },
         { icon: CreditCard, label: "Purchases and memberships", action: () => console.log("Purchases") }
       ]
     },

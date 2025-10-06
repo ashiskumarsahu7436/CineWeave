@@ -7,6 +7,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import Layout from "@/components/Layout";
+import StudioLayout from "@/components/StudioLayout";
 import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
 import Shorts from "@/pages/Shorts";
@@ -28,6 +29,9 @@ import Appearance from "@/pages/Appearance";
 import Language from "@/pages/Language";
 import Location from "@/pages/Location";
 import KeyboardShortcuts from "@/pages/KeyboardShortcuts";
+import StudioDashboard from "@/pages/studio/Dashboard";
+import StudioContent from "@/pages/studio/Content";
+import StudioAnalytics from "@/pages/studio/Analytics";
 import NotFound from "@/pages/not-found";
 
 // Protected route wrapper
@@ -57,49 +61,210 @@ function Router() {
     );
   }
 
-  // Always show app layout for all users (authenticated and unauthenticated)
   return (
-    <Layout>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/shorts" component={Shorts} />
-        <Route path="/trending" component={Trending} />
-        <Route path="/subscriptions">
-          {() => <ProtectedRoute component={Subscriptions} />}
-        </Route>
-        <Route path="/spaces">
-          {() => <ProtectedRoute component={Spaces} />}
-        </Route>
-        <Route path="/library">
-          {() => <ProtectedRoute component={Library} />}
-        </Route>
-        <Route path="/history">
-          {() => <ProtectedRoute component={History} />}
-        </Route>
-        <Route path="/watch-later">
-          {() => <ProtectedRoute component={WatchLater} />}
-        </Route>
-        <Route path="/watch/:id" component={Watch} />
-        <Route path="/channel/:id" component={Channel} />
-        <Route path="/explore/:category" component={Explore} />
-        <Route path="/settings">
-          {() => <ProtectedRoute component={Settings} />}
-        </Route>
-        <Route path="/report-history">
-          {() => <ProtectedRoute component={ReportHistory} />}
-        </Route>
-        <Route path="/help" component={Help} />
-        <Route path="/feedback" component={Feedback} />
-        <Route path="/notifications">
-          {() => <ProtectedRoute component={Notifications} />}
-        </Route>
-        <Route path="/appearance" component={Appearance} />
-        <Route path="/language" component={Language} />
-        <Route path="/location" component={Location} />
-        <Route path="/keyboard-shortcuts" component={KeyboardShortcuts} />
-        <Route component={NotFound} />
-      </Switch>
-    </Layout>
+    <Switch>
+      {/* Studio routes with StudioLayout */}
+      <Route path="/studio">
+        {() => (
+          <ProtectedRoute component={() => (
+            <StudioLayout>
+              <StudioDashboard />
+            </StudioLayout>
+          )} />
+        )}
+      </Route>
+      <Route path="/studio/content">
+        {() => (
+          <ProtectedRoute component={() => (
+            <StudioLayout>
+              <StudioContent />
+            </StudioLayout>
+          )} />
+        )}
+      </Route>
+      <Route path="/studio/analytics">
+        {() => (
+          <ProtectedRoute component={() => (
+            <StudioLayout>
+              <StudioAnalytics />
+            </StudioLayout>
+          )} />
+        )}
+      </Route>
+      <Route path="/studio/community">
+        {() => (
+          <ProtectedRoute component={() => (
+            <StudioLayout>
+              <div className="text-center py-16">
+                <h2 className="text-2xl font-bold mb-2">Community</h2>
+                <p className="text-muted-foreground">Manage comments and engage with your audience</p>
+              </div>
+            </StudioLayout>
+          )} />
+        )}
+      </Route>
+      <Route path="/studio/settings">
+        {() => (
+          <ProtectedRoute component={() => (
+            <StudioLayout>
+              <div className="text-center py-16">
+                <h2 className="text-2xl font-bold mb-2">Studio Settings</h2>
+                <p className="text-muted-foreground">Configure your channel preferences</p>
+              </div>
+            </StudioLayout>
+          )} />
+        )}
+      </Route>
+
+      {/* Main app routes with Layout */}
+      <Route path="/">
+        {() => (
+          <Layout>
+            <Home />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/shorts">
+        {() => (
+          <Layout>
+            <Shorts />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/trending">
+        {() => (
+          <Layout>
+            <Trending />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/subscriptions">
+        {() => (
+          <Layout>
+            <ProtectedRoute component={Subscriptions} />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/spaces">
+        {() => (
+          <Layout>
+            <ProtectedRoute component={Spaces} />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/library">
+        {() => (
+          <Layout>
+            <ProtectedRoute component={Library} />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/history">
+        {() => (
+          <Layout>
+            <ProtectedRoute component={History} />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/watch-later">
+        {() => (
+          <Layout>
+            <ProtectedRoute component={WatchLater} />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/watch/:id">
+        {() => (
+          <Layout>
+            <Watch />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/channel/:id">
+        {() => (
+          <Layout>
+            <Channel />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/explore/:category">
+        {() => (
+          <Layout>
+            <Explore />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/settings">
+        {() => (
+          <Layout>
+            <ProtectedRoute component={Settings} />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/report-history">
+        {() => (
+          <Layout>
+            <ProtectedRoute component={ReportHistory} />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/help">
+        {() => (
+          <Layout>
+            <Help />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/feedback">
+        {() => (
+          <Layout>
+            <Feedback />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/notifications">
+        {() => (
+          <Layout>
+            <ProtectedRoute component={Notifications} />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/appearance">
+        {() => (
+          <Layout>
+            <Appearance />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/language">
+        {() => (
+          <Layout>
+            <Language />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/location">
+        {() => (
+          <Layout>
+            <Location />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/keyboard-shortcuts">
+        {() => (
+          <Layout>
+            <KeyboardShortcuts />
+          </Layout>
+        )}
+      </Route>
+      <Route>
+        {() => (
+          <Layout>
+            <NotFound />
+          </Layout>
+        )}
+      </Route>
+    </Switch>
   );
 }
 
