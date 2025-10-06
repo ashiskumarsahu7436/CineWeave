@@ -15,13 +15,11 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import AccountMenu from "@/components/AccountMenu";
-import UploadVideoDialog from "@/components/UploadVideoDialog";
 import logoImage from "@/assets/cineweave-logo.svg";
 
 export default function TopNavigation() {
   const [searchQuery, setSearchQuery] = useState("");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const { setSearchQuery: setGlobalSearchQuery, sidebarCollapsed, setSidebarCollapsed } = useAppStore();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -90,7 +88,7 @@ export default function TopNavigation() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem 
-              onClick={() => setUploadDialogOpen(true)}
+              onClick={() => setLocation("/studio/content?upload=true")}
               className="gap-3 cursor-pointer"
             >
               <Video className="h-4 w-4" />
@@ -148,11 +146,6 @@ export default function TopNavigation() {
           </SheetContent>
         </Sheet>
       </div>
-
-      <UploadVideoDialog 
-        open={uploadDialogOpen} 
-        onOpenChange={setUploadDialogOpen} 
-      />
     </nav>
   );
 }

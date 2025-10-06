@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,11 +21,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, Upload, MoreVertical, Eye, MessageSquare, ThumbsUp, Video } from "lucide-react";
+import { useLocation } from "wouter";
 import UploadVideoDialog from "@/components/UploadVideoDialog";
 
 export default function StudioContent() {
   const { user } = useAuth();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [location, setLocation] = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('upload') === 'true') {
+      setUploadDialogOpen(true);
+      setLocation('/studio/content', { replace: true });
+    }
+  }, [location, setLocation]);
 
   const { data: channel } = useQuery<any>({
     queryKey: ['/api/users', user?.id, 'channel'],
