@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { ThumbsUp, ThumbsDown, Share2, Flag, Clock, Send, Edit, Trash, Reply, Heart } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Share2, Clock, Send, Edit, Trash, Reply, Heart, ChevronDown, ChevronUp, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -29,6 +29,7 @@ export default function Watch() {
   const queryClient = useQueryClient();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasTrackedView, setHasTrackedView] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   
   const [commentText, setCommentText] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -102,7 +103,7 @@ export default function Watch() {
       const response = await fetch('/api/videos');
       if (!response.ok) return [];
       const allVideos = await response.json();
-      return allVideos.filter((v: VideoWithChannel) => v.id !== videoId).slice(0, 10);
+      return allVideos.filter((v: VideoWithChannel) => v.id !== videoId).slice(0, 15);
     },
     enabled: !!videoId
   });
@@ -422,14 +423,18 @@ export default function Watch() {
 
   if (isLoading || !video) {
     return (
-      <div className="space-y-4">
-        <div className="aspect-video bg-muted animate-pulse rounded-xl"></div>
-        <div className="h-8 bg-muted animate-pulse rounded w-3/4"></div>
-        <div className="flex gap-3">
-          <div className="w-10 h-10 bg-muted animate-pulse rounded-full"></div>
-          <div className="flex-1 space-y-2">
-            <div className="h-4 bg-muted animate-pulse rounded w-1/4"></div>
-            <div className="h-3 bg-muted animate-pulse rounded w-1/6"></div>
+      <div className="max-w-[1800px] mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr,400px] gap-6">
+          <div className="space-y-4">
+            <div className="aspect-video bg-muted animate-pulse rounded-2xl"></div>
+            <div className="h-8 bg-muted animate-pulse rounded-lg w-3/4"></div>
+            <div className="flex gap-4">
+              <div className="w-12 h-12 bg-muted animate-pulse rounded-full"></div>
+              <div className="flex-1 space-y-3">
+                <div className="h-4 bg-muted animate-pulse rounded-lg w-1/4"></div>
+                <div className="h-3 bg-muted animate-pulse rounded-lg w-1/6"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -442,71 +447,83 @@ export default function Watch() {
     const isReplying = replyTo === comment.id;
 
     return (
-      <div className={`flex gap-3 ${isReply ? 'ml-12' : ''}`}>
-        <Avatar className="h-10 w-10 flex-shrink-0">
+      <div className={`flex gap-4 ${isReply ? 'ml-14 mt-3' : 'py-4'}`}>
+        <Avatar className="h-10 w-10 flex-shrink-0 ring-2 ring-background">
           <AvatarImage src={comment.user?.profileImageUrl || undefined} />
-          <AvatarFallback>{comment.user?.username?.[0] || 'U'}</AvatarFallback>
+          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+            {comment.user?.username?.[0]?.toUpperCase() || 'U'}
+          </AvatarFallback>
         </Avatar>
-        <div className="flex-1 space-y-2">
+        <div className="flex-1 space-y-2 min-w-0">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-semibold text-sm">{comment.user?.username || 'Anonymous'}</span>
+            <div className="flex items-baseline gap-2 mb-1 flex-wrap">
+              <span className="font-semibold text-sm hover:text-primary cursor-pointer transition-colors">
+                @{comment.user?.username || 'Anonymous'}
+              </span>
               <span className="text-xs text-muted-foreground">
                 {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : 'just now'}
               </span>
             </div>
             
             {isEditing ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Textarea
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
-                  className="min-h-[80px]"
+                  className="min-h-[80px] resize-none border-2 focus-visible:ring-2 focus-visible:ring-primary"
                 />
                 <div className="flex gap-2">
                   <Button 
                     size="sm" 
                     onClick={() => handleEditComment(comment.id)}
                     disabled={updateCommentMutation.isPending}
+                    className="rounded-full"
                   >
                     {updateCommentMutation.isPending ? "Saving..." : "Save"}
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => {
-                    setEditingComment(null);
-                    setEditText("");
-                  }}>Cancel</Button>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={() => {
+                      setEditingComment(null);
+                      setEditText("");
+                    }}
+                    className="rounded-full"
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </div>
             ) : (
-              <p className="text-sm">{comment.content}</p>
+              <p className="text-sm leading-relaxed break-words">{comment.content}</p>
             )}
           </div>
 
           {!isEditing && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 px-2"
+                className="h-9 px-3 rounded-full hover:bg-primary/10 transition-all"
                 onClick={() => handleLikeComment(comment.id)}
                 disabled={likeCommentMutation.isPending}
               >
-                <Heart className="h-4 w-4 mr-1" />
-                {comment.likes || 0}
+                <Heart className="h-4 w-4 mr-1.5" />
+                <span className="text-xs font-medium">{comment.likes || 0}</span>
               </Button>
               
               {!isReply && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-2"
+                  className="h-9 px-3 rounded-full hover:bg-primary/10 transition-all"
                   onClick={() => {
                     setReplyTo(comment.id);
                     setReplyText("");
                   }}
                 >
-                  <Reply className="h-4 w-4 mr-1" />
-                  Reply
+                  <Reply className="h-4 w-4 mr-1.5" />
+                  <span className="text-xs font-medium">Reply</span>
                 </Button>
               )}
 
@@ -515,7 +532,7 @@ export default function Watch() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2"
+                    className="h-9 px-3 rounded-full hover:bg-primary/10 transition-all"
                     onClick={() => {
                       setEditingComment(comment.id);
                       setEditText(comment.content);
@@ -526,7 +543,7 @@ export default function Watch() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2"
+                    className="h-9 px-3 rounded-full hover:bg-destructive/10 text-destructive transition-all"
                     onClick={() => handleDeleteComment(comment.id)}
                     disabled={deleteCommentMutation.isPending}
                   >
@@ -538,32 +555,40 @@ export default function Watch() {
           )}
 
           {isReplying && (
-            <div className="space-y-2 mt-2">
+            <div className="space-y-3 mt-3 bg-muted/30 rounded-xl p-4">
               <Textarea
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 placeholder="Add a reply..."
-                className="min-h-[80px]"
+                className="min-h-[80px] resize-none bg-background"
               />
-              <div className="flex gap-2">
+              <div className="flex gap-2 justify-end">
+                <Button 
+                  size="sm" 
+                  variant="ghost"
+                  onClick={() => {
+                    setReplyTo(null);
+                    setReplyText("");
+                  }}
+                  className="rounded-full"
+                >
+                  Cancel
+                </Button>
                 <Button 
                   size="sm" 
                   onClick={() => handlePostReply(comment.id)}
-                  disabled={createCommentMutation.isPending}
+                  disabled={createCommentMutation.isPending || !replyText.trim()}
+                  className="rounded-full"
                 >
                   <Send className="h-4 w-4 mr-2" />
                   {createCommentMutation.isPending ? "Posting..." : "Reply"}
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => {
-                  setReplyTo(null);
-                  setReplyText("");
-                }}>Cancel</Button>
               </div>
             </div>
           )}
 
           {comment.replies && comment.replies.length > 0 && (
-            <div className="space-y-3 mt-3">
+            <div className="space-y-1 mt-4">
               {comment.replies.map((reply) => (
                 <CommentItem key={reply.id} comment={reply} isReply />
               ))}
@@ -575,53 +600,68 @@ export default function Watch() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 space-y-4">
-        <div className="aspect-video bg-black rounded-xl overflow-hidden">
-          <video
-            ref={videoRef}
-            src={video.videoUrl}
-            controls
-            className="w-full h-full"
-            onPlay={handleVideoPlay}
-            onError={(e) => {
-              console.error("Video error:", e);
-              toast({ 
-                title: "Video error", 
-                description: "Failed to load video. Using placeholder.", 
-                variant: "destructive" 
-              });
-            }}
-          >
-            Your browser does not support the video tag.
-          </video>
-        </div>
+    <div className="max-w-[1800px] mx-auto px-4 py-6">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr,400px] gap-6">
+        {/* Main Content */}
+        <div className="space-y-5">
+          {/* Video Player */}
+          <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
+            <video
+              ref={videoRef}
+              src={video.videoUrl}
+              controls
+              className="w-full h-full"
+              onPlay={handleVideoPlay}
+              onError={(e) => {
+                console.error("Video error:", e);
+                toast({ 
+                  title: "Video error", 
+                  description: "Failed to load video. Using placeholder.", 
+                  variant: "destructive" 
+                });
+              }}
+            >
+              Your browser does not support the video tag.
+            </video>
+          </div>
 
-        <div>
-          <h1 className="text-xl font-bold mb-2">{video.title}</h1>
+          {/* Video Title */}
+          <h1 className="text-2xl font-bold leading-tight hover:text-primary/90 transition-colors cursor-default">
+            {video.title}
+          </h1>
           
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
+          {/* Channel Info & Actions */}
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            {/* Channel Section */}
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <Avatar className="h-12 w-12 flex-shrink-0 ring-2 ring-background cursor-pointer hover:ring-primary transition-all">
                 <AvatarImage src={video.channel.avatar || undefined} />
-                <AvatarFallback>{video.channel.name[0]}</AvatarFallback>
+                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-lg font-bold">
+                  {video.channel.name[0]}
+                </AvatarFallback>
               </Avatar>
-              <div>
-                <div className="font-semibold flex items-center gap-1">
-                  {video.channel.name}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="font-semibold text-base truncate hover:text-primary cursor-pointer transition-colors">
+                    {video.channel.name}
+                  </h2>
                   {video.channel.verified && (
-                    <svg className="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="currentColor">
+                    <svg className="h-5 w-5 text-primary flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
                     </svg>
                   )}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   {video.channel.subscribers?.toLocaleString()} subscribers
-                </div>
+                </p>
               </div>
               <Button 
                 variant={isSubscribed ? "secondary" : "default"} 
-                className="ml-2"
+                className={`rounded-full px-6 h-10 font-semibold transition-all ${
+                  isSubscribed 
+                    ? 'hover:bg-secondary/80' 
+                    : 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/30'
+                }`}
                 onClick={handleSubscribe}
                 disabled={subscribeMutation.isPending}
               >
@@ -629,73 +669,118 @@ export default function Watch() {
               </Button>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex items-center border rounded-full overflow-hidden">
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Like/Dislike Group */}
+              <div className="flex items-center bg-secondary/50 rounded-full overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className={`rounded-none border-r ${userLike?.type === 'like' ? 'bg-primary/10' : ''}`}
+                  className={`rounded-none h-10 px-4 ${userLike?.type === 'like' ? 'bg-primary/10 text-primary' : ''} hover:bg-primary/20 transition-all`}
                   onClick={handleLike}
                   disabled={likeMutation.isPending}
                 >
                   <ThumbsUp className={`h-4 w-4 mr-2 ${userLike?.type === 'like' ? 'fill-current' : ''}`} />
-                  {likeCounts.likes}
+                  <span className="font-semibold">{likeCounts.likes}</span>
                 </Button>
+                <Separator orientation="vertical" className="h-6" />
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className={`rounded-none ${userLike?.type === 'dislike' ? 'bg-primary/10' : ''}`}
+                  className={`rounded-none h-10 px-4 ${userLike?.type === 'dislike' ? 'bg-primary/10 text-primary' : ''} hover:bg-primary/20 transition-all`}
                   onClick={handleDislike}
                   disabled={likeMutation.isPending}
                 >
                   <ThumbsDown className={`h-4 w-4 ${userLike?.type === 'dislike' ? 'fill-current' : ''}`} />
-                  {likeCounts.dislikes}
                 </Button>
               </div>
-              <Button variant="secondary" size="sm">
+
+              <Button variant="secondary" size="sm" className="rounded-full h-10 px-5 hover:bg-secondary/80 transition-all shadow-sm">
                 <Share2 className="h-4 w-4 mr-2" />
-                Share
+                <span className="font-semibold">Share</span>
               </Button>
-              <Button variant="secondary" size="sm">
+              
+              <Button variant="secondary" size="sm" className="rounded-full h-10 px-5 hover:bg-secondary/80 transition-all shadow-sm">
                 <Clock className="h-4 w-4 mr-2" />
-                Save
+                <span className="font-semibold">Save</span>
               </Button>
-              <Button variant="secondary" size="sm">
-                <Flag className="h-4 w-4" />
+              
+              <Button variant="secondary" size="sm" className="rounded-full h-10 px-3 hover:bg-secondary/80 transition-all shadow-sm">
+                <MoreVertical className="h-4 w-4" />
               </Button>
             </div>
           </div>
 
-          <Separator className="my-4" />
-
-          <div className="bg-muted rounded-lg p-4">
-            <div className="flex gap-3 text-sm font-semibold mb-2">
-              <span>{video.views?.toLocaleString()} views</span>
-              <span>{new Date(video.uploadedAt || Date.now()).toLocaleDateString()}</span>
+          {/* Description Section */}
+          <div className="bg-secondary/30 rounded-2xl p-5 hover:bg-secondary/40 transition-colors">
+            <div className="flex gap-4 text-sm font-semibold mb-3">
+              <span className="text-foreground">{video.views?.toLocaleString()} views</span>
+              <span className="text-muted-foreground">
+                {new Date(video.uploadedAt || Date.now()).toLocaleDateString('en-US', { 
+                  year: 'numeric', 
+                  month: 'short', 
+                  day: 'numeric' 
+                })}
+              </span>
+              {video.category && (
+                <span className="px-3 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-medium">
+                  {video.category}
+                </span>
+              )}
             </div>
-            <p className="text-sm whitespace-pre-wrap">{video.description || "No description available."}</p>
+            <div className={`text-sm leading-relaxed whitespace-pre-wrap ${descriptionExpanded ? '' : 'line-clamp-2'}`}>
+              {video.description || "No description available."}
+            </div>
+            {video.description && video.description.length > 100 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="mt-2 text-foreground font-semibold hover:bg-transparent p-0 h-auto"
+                onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+              >
+                {descriptionExpanded ? (
+                  <>Show less <ChevronUp className="ml-1 h-4 w-4" /></>
+                ) : (
+                  <>Show more <ChevronDown className="ml-1 h-4 w-4" /></>
+                )}
+              </Button>
+            )}
           </div>
 
-          <Separator className="my-4" />
-
-          <div className="space-y-4">
-            <h2 className="font-semibold text-lg">{comments.length} Comments</h2>
+          {/* Comments Section */}
+          <div className="space-y-6 pb-8">
+            <div className="flex items-center gap-4">
+              <h2 className="font-bold text-xl">{comments.length} Comments</h2>
+            </div>
             
-            <div className="flex gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback>{currentUserId ? 'U' : 'G'}</AvatarFallback>
+            {/* Add Comment */}
+            <div className="flex gap-4">
+              <Avatar className="h-10 w-10 flex-shrink-0 ring-2 ring-background">
+                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                  {currentUserId ? 'U' : 'G'}
+                </AvatarFallback>
               </Avatar>
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 space-y-3">
                 <Textarea
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   placeholder="Add a comment..."
-                  className="min-h-[100px]"
+                  className="min-h-[100px] resize-none border-2 focus-visible:ring-2 focus-visible:ring-primary rounded-xl"
                 />
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  <Button 
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCommentText("")}
+                    className="rounded-full"
+                  >
+                    Cancel
+                  </Button>
                   <Button 
                     onClick={handlePostComment}
                     disabled={createCommentMutation.isPending || !commentText.trim()}
+                    className="rounded-full px-5"
+                    size="sm"
                   >
                     <Send className="h-4 w-4 mr-2" />
                     {createCommentMutation.isPending ? "Posting..." : "Comment"}
@@ -704,52 +789,86 @@ export default function Watch() {
               </div>
             </div>
 
-            <div className="space-y-4">
+            {/* Comments List */}
+            <Separator />
+            
+            <div className="space-y-1">
               {comments.map((comment) => (
                 <CommentItem key={comment.id} comment={comment} />
               ))}
               
               {comments.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>No comments yet. Be the first to comment!</p>
+                <div className="text-center py-16">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+                    <Send className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground font-medium">No comments yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">Be the first to share your thoughts!</p>
                 </div>
               )}
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="space-y-3">
-        <h2 className="font-semibold">Related Videos</h2>
-        {relatedVideos.map((relatedVideo) => (
-          <div 
-            key={relatedVideo.id} 
-            className="flex gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-colors"
-            onClick={() => handleRelatedVideoClick(relatedVideo.id)}
-          >
-            <div className="w-40 flex-shrink-0 relative">
-              <img
-                src={relatedVideo.thumbnail}
-                alt={relatedVideo.title}
-                className="w-full aspect-video object-cover rounded-lg"
-              />
-              {relatedVideo.duration && (
-                <div className="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1 rounded">
-                  {relatedVideo.duration}
+        {/* Sidebar - Related Videos */}
+        <div className="space-y-3">
+          <div className="sticky top-4 space-y-3">
+            <h2 className="font-bold text-lg px-2">Related Videos</h2>
+            <div className="space-y-3">
+              {relatedVideos.map((relatedVideo) => (
+                <div 
+                  key={relatedVideo.id} 
+                  className="group flex gap-3 cursor-pointer hover:bg-secondary/30 p-2 rounded-xl transition-all duration-200"
+                  onClick={() => handleRelatedVideoClick(relatedVideo.id)}
+                >
+                  <div className="w-[168px] flex-shrink-0 relative rounded-lg overflow-hidden">
+                    <img
+                      src={relatedVideo.thumbnail}
+                      alt={relatedVideo.title}
+                      className="w-full aspect-video object-cover group-hover:scale-105 transition-transform duration-200"
+                    />
+                    {relatedVideo.duration && !relatedVideo.isLive && (
+                      <div className="absolute bottom-1.5 right-1.5 bg-black/90 text-white text-xs px-1.5 py-0.5 rounded font-semibold">
+                        {relatedVideo.duration}
+                      </div>
+                    )}
+                    {relatedVideo.isLive && (
+                      <div className="absolute bottom-1.5 right-1.5 bg-red-600 text-white text-xs px-2 py-0.5 rounded font-bold uppercase">
+                        Live
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold line-clamp-2 mb-1.5 group-hover:text-primary transition-colors leading-snug">
+                      {relatedVideo.title}
+                    </h3>
+                    <div className="space-y-0.5">
+                      <p className="text-xs text-muted-foreground hover:text-foreground transition-colors font-medium">
+                        {relatedVideo.channel.name}
+                        {relatedVideo.channel.verified && (
+                          <svg className="inline h-3 w-3 ml-1 text-primary" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                          </svg>
+                        )}
+                      </p>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <span>{relatedVideo.views?.toLocaleString()} views</span>
+                        <span>•</span>
+                        <span>{formatDistanceToNow(new Date(relatedVideo.uploadedAt || Date.now()), { addSuffix: true })}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              {relatedVideos.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="text-sm">No related videos found</p>
                 </div>
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold line-clamp-2 mb-1">
-                {relatedVideo.title}
-              </h3>
-              <p className="text-xs text-muted-foreground">{relatedVideo.channel.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {relatedVideo.views?.toLocaleString()} views
-              </p>
-            </div>
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );
