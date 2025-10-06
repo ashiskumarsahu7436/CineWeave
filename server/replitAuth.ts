@@ -1,5 +1,6 @@
 import * as client from "openid-client";
 import { Strategy, type VerifyFunction } from "openid-client/passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 import passport from "passport";
 import session from "express-session";
@@ -133,24 +134,96 @@ export async function setupAuth(app: Express) {
       });
     });
   } else {
-    // For non-Replit environments (like Render), provide basic session handling
-    passport.serializeUser((user: Express.User, cb) => cb(null, user));
-    passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+    // For non-Replit environments (like Render), use Google OAuth
+    const useGoogleOAuth = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+    
+    if (useGoogleOAuth) {
+      // Google OAuth Strategy
+      const callbackURL = process.env.GOOGLE_CALLBACK_URL || `${process.env.RENDER_EXTERNAL_URL || 'http://localhost:5000'}/api/auth/google/callback`;
+      
+      passport.use(new GoogleStrategy({
+        clientID: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+        callbackURL: callbackURL,
+      }, async (accessToken: string, refreshToken: string, profile: any, done: any) => {
+        try {
+          // Create or update user in database
+          await storage.upsertUser({
+            id: profile.id,
+            email: profile.emails?.[0]?.value || null,
+            firstName: profile.name?.givenName || null,
+            lastName: profile.name?.familyName || null,
+            profileImageUrl: profile.photos?.[0]?.value || null,
+          });
+          
+          const user = {
+            googleId: profile.id,
+            displayName: profile.displayName,
+            email: profile.emails?.[0]?.value,
+            photo: profile.photos?.[0]?.value,
+          };
+          
+          done(null, user);
+        } catch (error) {
+          done(error, null);
+        }
+      }));
 
-    // Stub auth endpoints for compatibility
-    app.get("/api/login", (req, res) => {
-      res.status(501).json({ message: "Authentication not configured for this environment" });
-    });
-
-    app.get("/api/callback", (req, res) => {
-      res.redirect("/");
-    });
-
-    app.get("/api/logout", (req, res) => {
-      req.logout(() => {
-        res.redirect("/");
+      passport.serializeUser((user: any, done) => {
+        done(null, user.googleId);
       });
-    });
+
+      passport.deserializeUser(async (id: string, done) => {
+        try {
+          const user = await storage.getUser(id);
+          if (!user) {
+            return done(null, false);
+          }
+          done(null, user as Express.User);
+        } catch (error) {
+          done(error, null);
+        }
+      });
+
+      // Google OAuth Routes
+      app.get("/api/auth/google", 
+        passport.authenticate("google", { scope: ["profile", "email"] })
+      );
+
+      app.get("/api/auth/google/callback",
+        passport.authenticate("google", { failureRedirect: "/" }),
+        (req, res) => {
+          res.redirect("/");
+        }
+      );
+
+      // Legacy /api/login redirects to Google OAuth
+      app.get("/api/login", (req, res) => {
+        res.redirect("/api/auth/google");
+      });
+
+      app.get("/api/logout", (req, res) => {
+        req.logout(() => {
+          res.redirect("/");
+        });
+      });
+    } else {
+      // No OAuth configured - only email/OTP will work
+      passport.serializeUser((user: Express.User, cb) => cb(null, user));
+      passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+
+      app.get("/api/login", (req, res) => {
+        res.status(501).json({ 
+          message: "OAuth not configured. Please use email/OTP authentication or set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables." 
+        });
+      });
+
+      app.get("/api/logout", (req, res) => {
+        req.logout(() => {
+          res.redirect("/");
+        });
+      });
+    }
   }
 }
 

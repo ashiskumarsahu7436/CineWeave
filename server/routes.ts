@@ -18,6 +18,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(user);
       }
       
+      // Check if authenticated via Google OAuth
+      if (req.isAuthenticated() && req.user?.id) {
+        // User is already the full user object from deserializeUser
+        return res.json(req.user);
+      }
+      
       // Check if authenticated via email (session-based)
       if (req.session && req.session.userId) {
         const user = await storage.getUser(req.session.userId);
