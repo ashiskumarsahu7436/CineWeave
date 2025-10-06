@@ -3,19 +3,102 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertChannelSchema, insertVideoSchema, insertSpaceSchema, insertSubscriptionSchema, insertCommentSchema, insertLikeSchema, insertWatchHistorySchema, insertPlaylistSchema, insertPlaylistVideoSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import "./types";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
 
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/user', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      // Check if authenticated via Replit Auth
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        const userId = req.user.claims.sub;
+        const user = await storage.getUser(userId);
+        return res.json(user);
+      }
+      
+      // Check if authenticated via email (session-based)
+      if (req.session && req.session.userId) {
+        const user = await storage.getUser(req.session.userId);
+        return res.json(user);
+      }
+      
+      res.status(401).json({ message: "Unauthorized" });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Email Authentication Routes
+  // Send OTP (for now, accepts any email and returns success)
+  app.post('/api/auth/email/send-otp', async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ message: "Valid email required" });
+      }
+      
+      // In production, send actual OTP via email service
+      // For now, just return success
+      console.log(`OTP would be sent to: ${email}`);
+      res.json({ message: "OTP sent successfully", email });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to send OTP" });
+    }
+  });
+
+  // Verify OTP and create/login user
+  app.post('/api/auth/email/verify-otp', async (req, res) => {
+    try {
+      const { email, otp, firstName, lastName } = req.body;
+      
+      if (!email || !otp) {
+        return res.status(400).json({ message: "Email and OTP required" });
+      }
+      
+      // For now, accept any OTP (will integrate external service later)
+      // Check if user exists
+      const existingUser = await storage.getUserByEmail(email);
+      
+      let user;
+      if (existingUser) {
+        user = existingUser;
+      } else {
+        // Create new user
+        user = await storage.createUser({
+          email,
+          firstName: firstName || null,
+          lastName: lastName || null,
+          authProvider: "email",
+          isVerified: true,
+        });
+      }
+      
+      // Set session
+      if (req.session) {
+        req.session.userId = user.id;
+      }
+      
+      res.json({ message: "Login successful", user });
+    } catch (error) {
+      console.error("Error verifying OTP:", error);
+      res.status(500).json({ message: "Failed to verify OTP" });
+    }
+  });
+
+  // Email Logout
+  app.post('/api/auth/email/logout', (req, res) => {
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).json({ message: "Failed to logout" });
+        }
+        res.json({ message: "Logged out successfully" });
+      });
+    } else {
+      res.json({ message: "Already logged out" });
     }
   });
 

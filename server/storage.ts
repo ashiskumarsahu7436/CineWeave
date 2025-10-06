@@ -5,6 +5,7 @@ export interface IStorage {
   // User methods
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
@@ -88,82 +89,7 @@ export class MemStorage implements IStorage {
   }
 
   private seedData() {
-    // Seed some initial data for demonstration
-    const sampleChannels: Channel[] = [
-      {
-        id: "ch1",
-        name: "A Gamingcraft",
-        username: "@agamingcraft",
-        avatar: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&h=80&fit=crop",
-        verified: true,
-        subscribers: 1200000,
-        description: "Gaming content creator"
-      },
-      {
-        id: "ch2",
-        name: "A Filmcraft",
-        username: "@afilmcraft",
-        avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop",
-        verified: true,
-        subscribers: 1200000,
-        description: "Film and documentary content"
-      },
-      {
-        id: "ch3",
-        name: "Tech Vision",
-        username: "@techvision",
-        avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop",
-        verified: true,
-        subscribers: 2100000,
-        description: "Technology and architecture"
-      }
-    ];
-
-    const sampleVideos: Video[] = [
-      {
-        id: "v1",
-        title: "Uncharted Ruins of Eldoris",
-        thumbnail: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=480&h=270&fit=crop",
-        videoUrl: "https://example.com/videos/v1.mp4",
-        duration: "12:48",
-        views: 1200000,
-        channelId: "ch1",
-        uploadedAt: new Date("2024-09-15"),
-        isLive: false,
-        description: "Epic fantasy adventure gameplay",
-        category: "Gaming"
-      },
-      {
-        id: "v2",
-        title: "Exploration X: The Hidden Valleys",
-        thumbnail: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=480&h=270&fit=crop",
-        videoUrl: "https://example.com/videos/v2.mp4",
-        duration: "22:48",
-        views: 1200000,
-        channelId: "ch2",
-        uploadedAt: new Date("2024-09-15"),
-        isLive: false,
-        description: "Documentary about hidden valleys",
-        category: "Movies"
-      },
-      {
-        id: "v3",
-        title: "Pro Tournament Live: Finals Day",
-        thumbnail: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=480&h=270&fit=crop",
-        videoUrl: "https://example.com/videos/v3-live.mp4",
-        duration: "",
-        views: 45000,
-        channelId: "ch1",
-        uploadedAt: new Date(),
-        isLive: true,
-        description: "Live gaming tournament",
-        category: "Gaming"
-      }
-    ];
-
-    // Seed data
-    sampleChannels.forEach(channel => this.channels.set(channel.id, channel));
-    sampleVideos.forEach(video => this.videos.set(video.id, video));
+    // No initial seed data - clean start
   }
 
   // User methods
@@ -175,6 +101,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).find(user => user.username === username);
   }
 
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.email === email);
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
     const user: User = { 
@@ -184,9 +114,13 @@ export class MemStorage implements IStorage {
       blockedChannels: [],
       username: insertUser.username ?? null,
       email: insertUser.email ?? null,
+      password: insertUser.password ?? null,
       firstName: insertUser.firstName ?? null,
       lastName: insertUser.lastName ?? null,
       profileImageUrl: insertUser.profileImageUrl ?? null,
+      authProvider: insertUser.authProvider ?? "email",
+      oauthId: insertUser.oauthId ?? null,
+      isVerified: insertUser.isVerified ?? false,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -224,7 +158,8 @@ export class MemStorage implements IStorage {
       subscribers: 0, 
       verified: false,
       description: insertChannel.description ?? null,
-      avatar: insertChannel.avatar ?? null
+      avatar: insertChannel.avatar ?? null,
+      createdAt: new Date()
     };
     this.channels.set(id, channel);
     return channel;
@@ -276,6 +211,7 @@ export class MemStorage implements IStorage {
       views: 0, 
       uploadedAt: new Date(), 
       isLive: false,
+      isShorts: insertVideo.isShorts ?? false,
       description: insertVideo.description ?? null,
       category: insertVideo.category ?? null
     };
@@ -408,11 +344,15 @@ export class MemStorage implements IStorage {
       id,
       username: userData.username ?? null,
       email: userData.email ?? null,
+      password: userData.password ?? null,
       firstName: userData.firstName ?? null,
       lastName: userData.lastName ?? null,
       profileImageUrl: userData.profileImageUrl ?? null,
       personalMode: userData.personalMode ?? false, 
       blockedChannels: userData.blockedChannels ?? [],
+      authProvider: userData.authProvider ?? "email",
+      oauthId: userData.oauthId ?? null,
+      isVerified: userData.isVerified ?? false,
       createdAt: userData.createdAt ?? new Date(),
       updatedAt: new Date()
     };
@@ -636,6 +576,11 @@ export class DbStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    return result[0];
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
     return result[0];
   }
 

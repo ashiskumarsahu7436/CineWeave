@@ -26,8 +26,23 @@ interface AccountMenuProps {
 export default function AccountMenu({ onClose }: AccountMenuProps) {
   const { currentUserId, personalMode, setPersonalMode } = useAppStore();
 
-  const handleSignOut = () => {
-    window.location.href = "/api/logout";
+  const handleSignOut = async () => {
+    try {
+      // Try email logout first
+      const res = await fetch('/api/auth/email/logout', {
+        method: 'POST',
+      });
+      
+      if (res.ok) {
+        window.location.href = '/';
+      } else {
+        // Fallback to Replit Auth logout
+        window.location.href = '/api/logout';
+      }
+    } catch (error) {
+      // If email logout fails, try Replit Auth logout
+      window.location.href = '/api/logout';
+    }
   };
 
   const menuSections = [

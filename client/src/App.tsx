@@ -5,7 +5,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAppStore } from "@/store/useAppStore";
 import { useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import Layout from "@/components/Layout";
+import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
 import Shorts from "@/pages/Shorts";
 import Trending from "@/pages/Trending";
@@ -29,6 +31,19 @@ import KeyboardShortcuts from "@/pages/KeyboardShortcuts";
 import NotFound from "@/pages/not-found";
 
 function Router() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Show landing page when not authenticated or loading
+  if (isLoading || !isAuthenticated) {
+    return (
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route component={Landing} />
+      </Switch>
+    );
+  }
+
+  // Show app layout when authenticated
   return (
     <Layout>
       <Switch>

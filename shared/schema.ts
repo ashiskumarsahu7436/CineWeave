@@ -17,23 +17,29 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").unique(),
   email: varchar("email").unique(),
+  password: text("password"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   personalMode: boolean("personal_mode").default(false),
   blockedChannels: text("blocked_channels").array().default([]),
+  authProvider: varchar("auth_provider").default("email"),
+  oauthId: text("oauth_id"),
+  isVerified: boolean("is_verified").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const channels = pgTable("channels", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   name: text("name").notNull(),
   username: text("username").notNull().unique(),
   avatar: text("avatar"),
   verified: boolean("verified").default(false),
   subscribers: integer("subscribers").default(0),
   description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const videos = pgTable("videos", {
@@ -46,6 +52,7 @@ export const videos = pgTable("videos", {
   channelId: varchar("channel_id").notNull(),
   uploadedAt: timestamp("uploaded_at").default(sql`now()`),
   isLive: boolean("is_live").default(false),
+  isShorts: boolean("is_shorts").default(false),
   description: text("description"),
   category: text("category"),
 });
