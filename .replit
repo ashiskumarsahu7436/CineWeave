@@ -41,6 +41,10 @@ externalPort = 3001
 localPort = 32917
 externalPort = 3000
 
+[[ports]]
+localPort = 39755
+externalPort = 3002
+
 [deployment]
 deploymentTarget = "autoscale"
 build = ["bash", "-c", "cd CineWeave/TubeStream && npm run build"]
