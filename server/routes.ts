@@ -118,6 +118,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/videos/:id", async (req, res) => {
+    try {
+      const video = await storage.getVideo(req.params.id);
+      if (!video) {
+        return res.status(404).json({ message: "Video not found" });
+      }
+      const channel = await storage.getChannel(video.channelId);
+      if (!channel) {
+        return res.status(404).json({ message: "Channel not found" });
+      }
+      res.json({ ...video, channel });
+    } catch (error) {
+      console.error("Error in GET /api/videos/:id:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Space routes
   app.get("/api/spaces/user/:userId", async (req, res) => {
     try {
@@ -173,9 +190,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/subscriptions", async (req, res) => {
+  app.post("/api/subscriptions", isAuthenticated, async (req: any, res) => {
     try {
-      const subData = insertSubscriptionSchema.parse(req.body);
+      const userId = req.user.claims.sub;
+      const subData = insertSubscriptionSchema.parse({ ...req.body, userId });
       const subscription = await storage.subscribe(subData);
       res.status(201).json(subscription);
     } catch (error) {
@@ -183,11 +201,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/subscriptions", async (req, res) => {
+  app.delete("/api/subscriptions", isAuthenticated, async (req: any, res) => {
     try {
-      const { userId, channelId } = req.body;
-      if (!userId || !channelId) {
-        return res.status(400).json({ message: "UserId and channelId required" });
+      const userId = req.user.claims.sub;
+      const { channelId } = req.body;
+      if (!channelId) {
+        return res.status(400).json({ message: "ChannelId required" });
       }
       const unsubscribed = await storage.unsubscribe(userId, channelId);
       if (!unsubscribed) {
@@ -232,10 +251,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Comment routes
-  app.post("/api/videos/:videoId/comments", async (req, res) => {
+  app.post("/api/videos/:videoId/comments", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const commentData = insertCommentSchema.parse({
         ...req.body,
+        userId,
         videoId: req.params.videoId
       });
       const comment = await storage.createComment(commentData);
@@ -260,20 +281,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/comments/:id", async (req, res) => {
+  app.patch("/api/comments/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const comment = await storage.updateComment(req.params.id, req.body);
-      if (!comment) {
+      const comment = await storage.getComment(req.params.id);
+      if (!comment || comment.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      const updatedComment = await storage.updateComment(req.params.id, req.body);
+      if (!updatedComment) {
         return res.status(404).json({ message: "Comment not found" });
       }
-      res.json(comment);
+      res.json(updatedComment);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
 
-  app.delete("/api/comments/:id", async (req, res) => {
+  app.delete("/api/comments/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const comment = await storage.getComment(req.params.id);
+      if (!comment || comment.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
       const deleted = await storage.deleteComment(req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "Comment not found" });
@@ -284,7 +313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/comments/:id/like", async (req, res) => {
+  app.post("/api/comments/:id/like", isAuthenticated, async (req: any, res) => {
     try {
       const liked = await storage.likeComment(req.params.id);
       if (!liked) {
@@ -297,10 +326,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Like routes
-  app.post("/api/videos/:videoId/like", async (req, res) => {
+  app.post("/api/videos/:videoId/like", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const likeData = insertLikeSchema.parse({
         ...req.body,
+        userId,
         videoId: req.params.videoId
       });
       const result = await storage.toggleLike(likeData);
@@ -329,9 +360,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Watch history routes
-  app.post("/api/watch-history", async (req, res) => {
+  app.post("/api/watch-history", isAuthenticated, async (req: any, res) => {
     try {
-      const historyData = insertWatchHistorySchema.parse(req.body);
+      const userId = req.user.claims.sub;
+      const historyData = insertWatchHistorySchema.parse({ ...req.body, userId });
       const history = await storage.addToWatchHistory(historyData);
       res.status(201).json(history);
     } catch (error) {
@@ -353,9 +385,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/watch-history/:userId", async (req, res) => {
+  app.delete("/api/watch-history/:userId", isAuthenticated, async (req: any, res) => {
     try {
-      const cleared = await storage.clearWatchHistory(req.params.userId);
+      const userId = req.user.claims.sub;
+      const cleared = await storage.clearWatchHistory(userId);
       if (!cleared) {
         return res.status(404).json({ message: "No watch history found" });
       }
@@ -366,9 +399,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Playlist routes
-  app.post("/api/playlists", async (req, res) => {
+  app.post("/api/playlists", isAuthenticated, async (req: any, res) => {
     try {
-      const playlistData = insertPlaylistSchema.parse(req.body);
+      const userId = req.user.claims.sub;
+      const playlistData = insertPlaylistSchema.parse({ ...req.body, userId });
       const playlist = await storage.createPlaylist(playlistData);
       res.status(201).json(playlist);
     } catch (error) {
@@ -385,20 +419,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/playlists/:id", async (req, res) => {
+  app.patch("/api/playlists/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const playlist = await storage.updatePlaylist(req.params.id, req.body);
-      if (!playlist) {
+      const playlist = await storage.getPlaylist(req.params.id);
+      if (!playlist || playlist.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      const updatedPlaylist = await storage.updatePlaylist(req.params.id, req.body);
+      if (!updatedPlaylist) {
         return res.status(404).json({ message: "Playlist not found" });
       }
-      res.json(playlist);
+      res.json(updatedPlaylist);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
 
-  app.delete("/api/playlists/:id", async (req, res) => {
+  app.delete("/api/playlists/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const playlist = await storage.getPlaylist(req.params.id);
+      if (!playlist || playlist.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
       const deleted = await storage.deletePlaylist(req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "Playlist not found" });
@@ -409,7 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/playlists/:id/videos", async (req, res) => {
+  app.post("/api/playlists/:id/videos", isAuthenticated, async (req: any, res) => {
     try {
       const playlistVideoData = insertPlaylistVideoSchema.parse({
         ...req.body,
@@ -422,8 +464,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/playlists/:playlistId/videos/:videoId", async (req, res) => {
+  app.delete("/api/playlists/:playlistId/videos/:videoId", isAuthenticated, async (req: any, res) => {
     try {
+      const playlist = await storage.getPlaylist(req.params.playlistId);
+      if (!playlist || playlist.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
       const removed = await storage.removeVideoFromPlaylist(req.params.playlistId, req.params.videoId);
       if (!removed) {
         return res.status(404).json({ message: "Video not found in playlist" });

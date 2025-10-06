@@ -66,6 +66,7 @@ async function seed() {
     {
       title: "Uncharted Ruins of Eldoris",
       thumbnail: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=480&h=270&fit=crop",
+      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
       duration: "12:48",
       views: 1200000,
       channelId: createdChannels[0].id,
@@ -76,6 +77,7 @@ async function seed() {
     {
       title: "Exploration X: The Hidden Valleys",
       thumbnail: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=480&h=270&fit=crop",
+      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
       duration: "22:48",
       views: 1200000,
       channelId: createdChannels[1].id,
@@ -86,6 +88,7 @@ async function seed() {
     {
       title: "Pro Tournament Live: Finals Day",
       thumbnail: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=480&h=270&fit=crop",
+      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
       duration: "",
       views: 45000,
       channelId: createdChannels[0].id,
