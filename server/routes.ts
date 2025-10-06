@@ -298,6 +298,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create video (upload)
+  app.post("/api/videos", async (req: any, res) => {
+    try {
+      // Get user ID from session or Replit Auth
+      let userId = null;
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      } else if (req.isAuthenticated() && req.user?.id) {
+        userId = req.user.id;
+      } else if (req.session && req.session.userId) {
+        userId = req.session.userId;
+      }
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized - Please login to upload videos" });
+      }
+
+      // Get user's channel
+      const channel = await storage.getChannelByUserId(userId);
+      if (!channel) {
+        return res.status(400).json({ message: "You need to create a channel before uploading videos" });
+      }
+
+      // Validate required fields
+      const { title, thumbnail, videoUrl, duration, description, category, visibility } = req.body;
+      
+      if (!title || !thumbnail || !videoUrl || !duration) {
+        return res.status(400).json({ message: "Missing required fields: title, thumbnail, videoUrl, duration" });
+      }
+
+      // Create video data
+      const videoData = insertVideoSchema.parse({
+        title,
+        thumbnail,
+        videoUrl,
+        duration,
+        channelId: channel.id,
+        description: description || null,
+        category: category || null,
+        isShorts: duration && duration.includes(':') && parseInt(duration.split(':')[0]) === 0 && parseInt(duration.split(':')[1]) < 60,
+      });
+
+      const video = await storage.createVideo(videoData);
+      
+      res.status(201).json({
+        message: "Video uploaded successfully",
+        video: { ...video, channel }
+      });
+    } catch (error: any) {
+      console.error("Error creating video:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid video data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to upload video" });
+    }
+  });
+
   // Space routes
   app.get("/api/spaces/user/:userId", async (req, res) => {
     try {
