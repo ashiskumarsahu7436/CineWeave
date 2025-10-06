@@ -1,9 +1,15 @@
 import { useState } from "react";
-import { Search, Menu, Bell, UserCircle } from "lucide-react";
+import { Search, Menu, Bell, UserCircle, Plus, Video, Radio, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAppStore } from "@/store/useAppStore";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useLocation } from "wouter";
@@ -69,6 +75,36 @@ export default function TopNavigation() {
       
       {/* Right Section */}
       <div className="flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="gap-2 px-3 h-9 hover:bg-muted"
+              data-testid="button-create"
+            >
+              <Plus className="h-5 w-5" />
+              <span className="hidden sm:inline">Create</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem 
+              onClick={() => setLocation("/studio/content")}
+              className="gap-3 cursor-pointer"
+            >
+              <Video className="h-4 w-4" />
+              <span>Upload video</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="gap-3 cursor-pointer opacity-50" disabled>
+              <Radio className="h-4 w-4" />
+              <span>Go live</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="gap-3 cursor-pointer opacity-50" disabled>
+              <FileText className="h-4 w-4" />
+              <span>Create post</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <Button
           variant="ghost"
           size="icon"
