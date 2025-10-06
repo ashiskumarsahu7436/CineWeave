@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,9 +21,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, Upload, MoreVertical, Eye, MessageSquare, ThumbsUp, Video } from "lucide-react";
+import UploadVideoDialog from "@/components/UploadVideoDialog";
 
 export default function StudioContent() {
   const { user } = useAuth();
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
   const { data: channel } = useQuery<any>({
     queryKey: ['/api/users', user?.id, 'channel'],
@@ -52,7 +55,7 @@ export default function StudioContent() {
           <h1 className="text-3xl font-bold">Channel content</h1>
           <p className="text-muted-foreground mt-1">Manage and analyze your content</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setUploadDialogOpen(true)}>
           <Upload className="h-4 w-4" />
           Upload video
         </Button>
@@ -157,7 +160,7 @@ export default function StudioContent() {
                 <p className="text-muted-foreground mb-6 text-center max-w-md">
                   Start creating content for your channel. Upload your first video to get started.
                 </p>
-                <Button className="gap-2">
+                <Button className="gap-2" onClick={() => setUploadDialogOpen(true)}>
                   <Upload className="h-4 w-4" />
                   Upload video
                 </Button>
@@ -214,6 +217,11 @@ export default function StudioContent() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <UploadVideoDialog 
+        open={uploadDialogOpen} 
+        onOpenChange={setUploadDialogOpen} 
+      />
     </div>
   );
 }
