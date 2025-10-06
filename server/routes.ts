@@ -159,6 +159,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's channel
+  app.get("/api/users/:userId/channel", async (req, res) => {
+    try {
+      const channel = await storage.getChannelByUserId(req.params.userId);
+      if (!channel) {
+        return res.status(404).json({ message: "Channel not found" });
+      }
+      res.json(channel);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create channel for authenticated user
+  app.post("/api/channels", async (req: any, res) => {
+    try {
+      // Get user ID from session or Replit Auth
+      let userId = null;
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      } else if (req.session && req.session.userId) {
+        userId = req.session.userId;
+      }
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Check if user already has a channel
+      const existingChannel = await storage.getChannelByUserId(userId);
+      if (existingChannel) {
+        return res.status(400).json({ message: "User already has a channel" });
+      }
+
+      const channelData = insertChannelSchema.parse({ ...req.body, userId });
+      const channel = await storage.createChannel(channelData);
+      res.status(201).json(channel);
+    } catch (error) {
+      console.error("Error creating channel:", error);
+      res.status(400).json({ message: "Invalid channel data" });
+    }
+  });
+
+  // Update user's channel
+  app.patch("/api/channels/:id", async (req: any, res) => {
+    try {
+      // Get user ID from session or Replit Auth
+      let userId = null;
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      } else if (req.session && req.session.userId) {
+        userId = req.session.userId;
+      }
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Verify the channel belongs to the user
+      const channel = await storage.getChannel(req.params.id);
+      if (!channel || channel.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      const updatedChannel = await storage.updateChannel(req.params.id, req.body);
+      if (!updatedChannel) {
+        return res.status(404).json({ message: "Channel not found" });
+      }
+      res.json(updatedChannel);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Video routes
   app.get("/api/videos", async (req, res) => {
     try {

@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import VideoCard from "@/components/VideoCard";
 import SpaceCard from "@/components/SpaceCard";
+import ChannelCreationDialog from "@/components/ChannelCreationDialog";
 import { useAppStore } from "@/store/useAppStore";
+import { useAuth } from "@/hooks/useAuth";
 import { VideoWithChannel, SpaceWithChannels } from "@shared/schema";
 
 const categoryFilters = [
@@ -19,7 +21,29 @@ const categoryFilters = [
 
 export default function Home() {
   const { personalMode, searchQuery, currentUserId } = useAppStore();
+  const { user } = useAuth();
   const [activeCategory, setActiveCategory] = useState("");
+  const [showChannelCreation, setShowChannelCreation] = useState(false);
+
+  // Check if user has a channel
+  const { data: userChannel, isLoading: channelLoading } = useQuery({
+    queryKey: ['/api/users', user?.id, 'channel'],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const res = await fetch(`/api/users/${user.id}/channel`);
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error('Failed to fetch channel');
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+
+  // Show channel creation dialog if user doesn't have a channel
+  useEffect(() => {
+    if (!channelLoading && user && !userChannel) {
+      setShowChannelCreation(true);
+    }
+  }, [channelLoading, user, userChannel]);
 
   // Fetch videos based on personal mode and search query
   const { data: videos = [], isLoading: videosLoading } = useQuery<VideoWithChannel[]>({
@@ -205,6 +229,11 @@ export default function Home() {
         </div>
       )}
 
+      {/* Channel Creation Dialog */}
+      <ChannelCreationDialog 
+        open={showChannelCreation}
+        onOpenChange={setShowChannelCreation}
+      />
     </div>
   );
 }

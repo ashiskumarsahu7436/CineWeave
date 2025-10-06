@@ -13,8 +13,10 @@ export interface IStorage {
   // Channel methods
   getChannel(id: string): Promise<Channel | undefined>;
   getChannelByUsername(username: string): Promise<Channel | undefined>;
+  getChannelByUserId(userId: string): Promise<Channel | undefined>;
   getAllChannels(): Promise<Channel[]>;
   createChannel(channel: InsertChannel): Promise<Channel>;
+  updateChannel(id: string, updates: Partial<Channel>): Promise<Channel | undefined>;
 
   // Video methods
   getVideo(id: string): Promise<Video | undefined>;
@@ -146,6 +148,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.channels.values()).find(channel => channel.username === username);
   }
 
+  async getChannelByUserId(userId: string): Promise<Channel | undefined> {
+    return Array.from(this.channels.values()).find(channel => channel.userId === userId);
+  }
+
   async getAllChannels(): Promise<Channel[]> {
     return Array.from(this.channels.values());
   }
@@ -163,6 +169,15 @@ export class MemStorage implements IStorage {
     };
     this.channels.set(id, channel);
     return channel;
+  }
+
+  async updateChannel(id: string, updates: Partial<Channel>): Promise<Channel | undefined> {
+    const channel = this.channels.get(id);
+    if (!channel) return undefined;
+    
+    const updatedChannel = { ...channel, ...updates };
+    this.channels.set(id, updatedChannel);
+    return updatedChannel;
   }
 
   // Video methods
@@ -620,6 +635,11 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
+  async getChannelByUserId(userId: string): Promise<Channel | undefined> {
+    const result = await db.select().from(channels).where(eq(channels.userId, userId)).limit(1);
+    return result[0];
+  }
+
   async getAllChannels(): Promise<Channel[]> {
     try {
       const result = await db.select().from(channels);
@@ -635,6 +655,11 @@ export class DbStorage implements IStorage {
 
   async createChannel(insertChannel: InsertChannel): Promise<Channel> {
     const result = await db.insert(channels).values(insertChannel).returning();
+    return result[0];
+  }
+
+  async updateChannel(id: string, updates: Partial<Channel>): Promise<Channel | undefined> {
+    const result = await db.update(channels).set(updates).where(eq(channels.id, id)).returning();
     return result[0];
   }
 
