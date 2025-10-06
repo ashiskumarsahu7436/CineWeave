@@ -30,39 +30,69 @@ import Location from "@/pages/Location";
 import KeyboardShortcuts from "@/pages/KeyboardShortcuts";
 import NotFound from "@/pages/not-found";
 
-function Router() {
+// Protected route wrapper
+function ProtectedRoute({ component: Component }: { component: () => JSX.Element }) {
   const { isAuthenticated, isLoading } = useAuth();
-
-  // Show landing page when not authenticated or loading
-  if (isLoading || !isAuthenticated) {
+  
+  if (isLoading) {
     return (
-      <Switch>
-        <Route path="/" component={Landing} />
-        <Route component={Landing} />
-      </Switch>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  // For now, just render the component - auth modal will be handled by navigation
+  return <Component />;
+}
+
+function Router() {
+  const { isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
     );
   }
 
-  // Show app layout when authenticated
+  // Always show app layout for all users (authenticated and unauthenticated)
   return (
     <Layout>
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/shorts" component={Shorts} />
         <Route path="/trending" component={Trending} />
-        <Route path="/subscriptions" component={Subscriptions} />
-        <Route path="/spaces" component={Spaces} />
-        <Route path="/library" component={Library} />
-        <Route path="/history" component={History} />
-        <Route path="/watch-later" component={WatchLater} />
+        <Route path="/subscriptions">
+          {() => <ProtectedRoute component={Subscriptions} />}
+        </Route>
+        <Route path="/spaces">
+          {() => <ProtectedRoute component={Spaces} />}
+        </Route>
+        <Route path="/library">
+          {() => <ProtectedRoute component={Library} />}
+        </Route>
+        <Route path="/history">
+          {() => <ProtectedRoute component={History} />}
+        </Route>
+        <Route path="/watch-later">
+          {() => <ProtectedRoute component={WatchLater} />}
+        </Route>
         <Route path="/watch/:id" component={Watch} />
         <Route path="/channel/:id" component={Channel} />
         <Route path="/explore/:category" component={Explore} />
-        <Route path="/settings" component={Settings} />
-        <Route path="/report-history" component={ReportHistory} />
+        <Route path="/settings">
+          {() => <ProtectedRoute component={Settings} />}
+        </Route>
+        <Route path="/report-history">
+          {() => <ProtectedRoute component={ReportHistory} />}
+        </Route>
         <Route path="/help" component={Help} />
         <Route path="/feedback" component={Feedback} />
-        <Route path="/notifications" component={Notifications} />
+        <Route path="/notifications">
+          {() => <ProtectedRoute component={Notifications} />}
+        </Route>
         <Route path="/appearance" component={Appearance} />
         <Route path="/language" component={Language} />
         <Route path="/location" component={Location} />
