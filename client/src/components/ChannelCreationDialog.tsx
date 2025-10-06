@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 interface ChannelCreationDialogProps {
   open: boolean;
@@ -28,15 +29,7 @@ export default function ChannelCreationDialog({ open, onOpenChange }: ChannelCre
 
   const createChannelMutation = useMutation({
     mutationFn: async (data: { name: string; username: string; description?: string }) => {
-      const res = await fetch('/api/channels', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to create channel');
-      }
+      const res = await apiRequest('POST', '/api/channels', data);
       return res.json();
     },
     onSuccess: () => {
