@@ -166,12 +166,16 @@ export default function AccountMenu({ onClose }: AccountMenuProps) {
       <div className="p-4">
         <div className="flex items-center gap-3 mb-4">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={user?.profileImageUrl || "https://github.com/shadcn.png"} />
-            <AvatarFallback>{user?.firstName?.[0] || 'U'}</AvatarFallback>
+            <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || user?.email || "User"} />
+            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold">
+              {user?.firstName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+            </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <div className="font-semibold truncate">{user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.username || 'User'}</div>
-            <div className="text-sm text-muted-foreground truncate">@{user?.username || 'user'}</div>
+            <div className="font-semibold truncate">
+              {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.firstName || user?.username || 'User'}
+            </div>
+            <div className="text-sm text-muted-foreground truncate">{user?.email || `@${user?.username || 'user'}`}</div>
             <Link href="/channel/user" className="text-sm text-primary hover:underline">
               View your channel
             </Link>

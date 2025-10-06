@@ -3,6 +3,7 @@ import { Search, Menu, Bell, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAppStore } from "@/store/useAppStore";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useLocation } from "wouter";
@@ -87,12 +88,13 @@ export default function TopNavigation() {
               className="w-10 h-10 overflow-hidden rounded-full p-0"
               data-testid="button-profile"
             >
-              {user?.profileImageUrl ? (
-                <img
-                  src={user.profileImageUrl}
-                  alt="User Avatar"
-                  className="w-full h-full object-cover"
-                />
+              {user ? (
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={user.profileImageUrl || undefined} alt={user.firstName || user.email || "User"} />
+                  <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold">
+                    {user.firstName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
               ) : (
                 <UserCircle className="w-8 h-8 text-muted-foreground" />
               )}
