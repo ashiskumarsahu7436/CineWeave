@@ -25,7 +25,7 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState("");
   const [showChannelCreation, setShowChannelCreation] = useState(false);
 
-  // Check if user has a channel
+  // Check if user has a channel (only when authenticated)
   const { data: userChannel, isLoading: channelLoading } = useQuery({
     queryKey: ['/api/users', user?.id, 'channel'],
     queryFn: async () => {
@@ -38,7 +38,7 @@ export default function Home() {
     enabled: !!user?.id,
   });
 
-  // Show channel creation dialog if user doesn't have a channel
+  // Show channel creation dialog only for authenticated users without a channel
   useEffect(() => {
     if (!channelLoading && user && !userChannel) {
       setShowChannelCreation(true);
@@ -73,9 +73,10 @@ export default function Home() {
     }
   });
 
-  // Fetch user spaces
+  // Fetch user spaces (only when authenticated)
   const { data: spaces = [] } = useQuery<SpaceWithChannels[]>({
     queryKey: ["/api/spaces/user", currentUserId],
+    enabled: !!user?.id,
   });
 
   const handleVideoClick = (video: VideoWithChannel) => {
@@ -172,8 +173,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* Spaces Section */}
-      {!searchQuery && videos.length > 0 && (
+      {/* Spaces Section - Only show for authenticated users */}
+      {user && !searchQuery && videos.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
@@ -229,11 +230,13 @@ export default function Home() {
         </div>
       )}
 
-      {/* Channel Creation Dialog */}
-      <ChannelCreationDialog 
-        open={showChannelCreation}
-        onOpenChange={setShowChannelCreation}
-      />
+      {/* Channel Creation Dialog - Only for authenticated users */}
+      {user && (
+        <ChannelCreationDialog 
+          open={showChannelCreation}
+          onOpenChange={setShowChannelCreation}
+        />
+      )}
     </div>
   );
 }

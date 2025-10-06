@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Search, Menu, Bell } from "lucide-react";
+import { Search, Menu, Bell, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useAppStore } from "@/store/useAppStore";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 import AccountMenu from "@/components/AccountMenu";
 import logoImage from "@/assets/cineweave-logo.svg";
 
@@ -14,6 +15,7 @@ export default function TopNavigation() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const { setSearchQuery: setGlobalSearchQuery, sidebarCollapsed, setSidebarCollapsed } = useAppStore();
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,11 +87,15 @@ export default function TopNavigation() {
               className="w-10 h-10 overflow-hidden rounded-full p-0"
               data-testid="button-profile"
             >
-              <img
-                src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&h=80&fit=crop"
-                alt="User Avatar"
-                className="w-full h-full object-cover"
-              />
+              {user?.profileImageUrl ? (
+                <img
+                  src={user.profileImageUrl}
+                  alt="User Avatar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <UserCircle className="w-8 h-8 text-muted-foreground" />
+              )}
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="p-0 w-80">

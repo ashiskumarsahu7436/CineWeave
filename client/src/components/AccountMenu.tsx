@@ -13,7 +13,7 @@ import {
   Settings,
   UserCircle
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/store/useAppStore";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import AuthModal from "./AuthModal";
 
 interface AccountMenuProps {
@@ -31,18 +32,30 @@ export default function AccountMenu({ onClose }: AccountMenuProps) {
   const { currentUserId, personalMode, setPersonalMode } = useAppStore();
   const { user, isAuthenticated } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   const handleSignOut = async () => {
     try {
+      // Close the menu first
+      onClose?.();
+      
+      // Clear the authentication cache immediately
+      queryClient.setQueryData(['/api/auth/user'], null);
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      
       // Try email logout first
       const res = await fetch('/api/auth/email/logout', {
         method: 'POST',
       });
       
       if (res.ok) {
-        window.location.href = '/';
+        // Redirect to home page
+        setLocation('/');
+        // Force reload to ensure clean state
+        setTimeout(() => window.location.reload(), 100);
       } else {
-        // Fallback to Replit Auth logout
+        // Fallback to Replit Auth logout (this will redirect)
         window.location.href = '/api/logout';
       }
     } catch (error) {
