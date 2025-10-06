@@ -374,8 +374,8 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b">
+      <DialogContent className="max-w-5xl max-h-[90vh] p-0 flex flex-col">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
           <DialogTitle className="text-xl flex items-center gap-2">
             <Film className="h-5 w-5" />
             {currentStep === "upload" ? "Upload video" : selectedFile?.name || "video"}
@@ -387,7 +387,7 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
           )}
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto min-h-0">
           {currentStep === "upload" ? (
             <div className="p-6">
               <div
@@ -851,7 +851,7 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
         </div>
 
         {currentStep !== "upload" && !isProcessing && (
-          <div className="border-t px-6 py-4 flex items-center justify-between bg-background">
+          <div className="border-t px-6 py-4 flex items-center justify-between bg-background flex-shrink-0">
             <Button
               variant="outline"
               onClick={handleBack}
