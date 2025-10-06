@@ -26,11 +26,21 @@ export default function StudioContent() {
 
   const { data: channel } = useQuery<any>({
     queryKey: ['/api/users', user?.id, 'channel'],
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${user?.id}/channel`);
+      if (!res.ok) return null;
+      return res.json();
+    },
     enabled: !!user?.id,
   });
 
   const { data: videos = [] } = useQuery<any[]>({
     queryKey: ['/api/videos'],
+    queryFn: async () => {
+      const res = await fetch('/api/videos');
+      if (!res.ok) return [];
+      return res.json();
+    },
   });
 
   const channelVideos = videos.filter((v: any) => v.channelId === channel?.id);

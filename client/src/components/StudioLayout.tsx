@@ -29,11 +29,6 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
   const [location] = useLocation();
   const { user } = useAuth();
 
-  const { data: channel } = useQuery<any>({
-    queryKey: ['/api/users', user?.id, 'channel'],
-    enabled: !!user?.id,
-  });
-
   const isActive = (path: string) => {
     if (path === "/studio") {
       return location === path;
@@ -65,12 +60,16 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
           </Link>
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={channel?.avatar} alt={channel?.name} />
-              <AvatarFallback>{channel?.name?.[0] || user?.firstName?.[0] || 'U'}</AvatarFallback>
+              <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || user?.email || "User"} />
+              <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold">
+                {user?.firstName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+              </AvatarFallback>
             </Avatar>
             <div className="hidden sm:block">
-              <p className="text-sm font-medium">{channel?.name || 'Your channel'}</p>
-              <p className="text-xs text-muted-foreground">{channel?.username || ''}</p>
+              <p className="text-sm font-medium">
+                {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.firstName || user?.username || 'User'}
+              </p>
+              <p className="text-xs text-muted-foreground">{user?.email || `@${user?.username || 'user'}`}</p>
             </div>
           </div>
         </div>
