@@ -110,7 +110,6 @@ export default function AccountMenu({ onClose }: AccountMenuProps) {
                 className="w-full" 
                 onClick={() => {
                   setShowAuthModal(true);
-                  onClose?.();
                 }}
                 data-testid="button-sign-in"
               >
@@ -148,7 +147,15 @@ export default function AccountMenu({ onClose }: AccountMenuProps) {
             </div>
           </div>
         </div>
-        <AuthModal open={showAuthModal} onOpenChange={setShowAuthModal} />
+        <AuthModal 
+          open={showAuthModal} 
+          onOpenChange={(open) => {
+            setShowAuthModal(open);
+            if (!open) {
+              onClose?.();
+            }
+          }} 
+        />
       </>
     );
   }
