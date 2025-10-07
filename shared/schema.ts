@@ -132,6 +132,7 @@ export const notifications = pgTable("notifications", {
   videoId: varchar("video_id"),
   channelId: varchar("channel_id"),
   thumbnail: text("thumbnail"),
+  metadata: jsonb("metadata"),
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
