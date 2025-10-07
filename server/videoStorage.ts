@@ -100,10 +100,8 @@ export async function uploadThumbnailToStorage(
 
   await s3Client.send(command);
   
-  // Construct CDN URL
-  const thumbnailUrl = CDN_URL 
-    ? `${CDN_URL}/${key}`
-    : `https://${BUCKET_NAME}.${process.env.IDRIVE_ENDPOINT?.replace('https://', '')}/${key}`;
+  // Return proxy API URL instead of direct iDrive URL (to avoid CORS issues)
+  const thumbnailUrl = `/api/thumbnails/${encodeURIComponent(key)}`;
 
   return thumbnailUrl;
 }
@@ -179,6 +177,30 @@ export async function getVideoFromStorage(
     contentLength: response.ContentLength || 0,
     contentType: response.ContentType || "video/mp4",
     contentRange: response.ContentRange,
+  };
+}
+
+/**
+ * Get thumbnail from iDrive E2 storage
+ */
+export async function getThumbnailFromStorage(
+  key: string
+): Promise<{ stream: Readable; contentLength: number; contentType: string }> {
+  const command = new GetObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+  });
+
+  const response = await s3Client.send(command);
+
+  if (!response.Body) {
+    throw new Error("No thumbnail data returned from storage");
+  }
+
+  return {
+    stream: response.Body as Readable,
+    contentLength: response.ContentLength || 0,
+    contentType: response.ContentType || "image/jpeg",
   };
 }
 

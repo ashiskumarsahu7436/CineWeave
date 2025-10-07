@@ -4,7 +4,7 @@ import multer from "multer";
 import { storage } from "./storage";
 import { insertUserSchema, insertChannelSchema, insertVideoSchema, insertSpaceSchema, insertSubscriptionSchema, insertCommentSchema, insertLikeSchema, insertWatchHistorySchema, insertPlaylistSchema, insertPlaylistVideoSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { uploadVideoToStorage, uploadThumbnailToStorage, isStorageConfigured, getVideoFromStorage } from "./videoStorage";
+import { uploadVideoToStorage, uploadThumbnailToStorage, isStorageConfigured, getVideoFromStorage, getThumbnailFromStorage } from "./videoStorage";
 import "./types";
 
 // Configure multer for memory storage
@@ -237,10 +237,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create channel for authenticated user
   app.post("/api/channels", async (req: any, res) => {
     try {
-      // Get user ID from session or Replit Auth
+      // Get user ID from session, Replit Auth, or Google OAuth
       let userId = null;
-      if (req.isAuthenticated() && req.user?.claims?.sub) {
-        userId = req.user.claims.sub;
+      if (req.isAuthenticated()) {
+        // For Replit Auth users
+        if (req.user?.claims?.sub) {
+          userId = req.user.claims.sub;
+        }
+        // For Google OAuth users (deserialized from database)
+        else if (req.user?.id) {
+          userId = req.user.id;
+        }
       } else if (req.session && req.session.userId) {
         userId = req.session.userId;
       }
@@ -267,10 +274,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update user's channel
   app.patch("/api/channels/:id", async (req: any, res) => {
     try {
-      // Get user ID from session or Replit Auth
+      // Get user ID from session, Replit Auth, or Google OAuth
       let userId = null;
-      if (req.isAuthenticated() && req.user?.claims?.sub) {
-        userId = req.user.claims.sub;
+      if (req.isAuthenticated()) {
+        // For Replit Auth users
+        if (req.user?.claims?.sub) {
+          userId = req.user.claims.sub;
+        }
+        // For Google OAuth users (deserialized from database)
+        else if (req.user?.id) {
+          userId = req.user.id;
+        }
       } else if (req.session && req.session.userId) {
         userId = req.session.userId;
       }
@@ -387,6 +401,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error streaming video:", error);
       res.status(500).json({ message: "Failed to stream video: " + error.message });
+    }
+  });
+
+  // Serve thumbnail from iDrive E2 (proxy endpoint to avoid CORS issues)
+  app.get("/api/thumbnails/:key", async (req, res) => {
+    try {
+      // Check storage configuration
+      if (!isStorageConfigured()) {
+        return res.status(503).json({ message: "Thumbnail storage not configured" });
+      }
+
+      const storageKey = decodeURIComponent(req.params.key);
+
+      // Fetch thumbnail from iDrive E2
+      const { stream, contentLength, contentType } = await getThumbnailFromStorage(storageKey);
+
+      // Set response headers
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Length", contentLength.toString());
+      res.setHeader("Cache-Control", "public, max-age=31536000"); // 1 year cache
+
+      // Stream thumbnail to client
+      stream.pipe(res);
+    } catch (error: any) {
+      console.error("Error serving thumbnail:", error);
+      res.status(500).json({ message: "Failed to serve thumbnail: " + error.message });
     }
   });
 

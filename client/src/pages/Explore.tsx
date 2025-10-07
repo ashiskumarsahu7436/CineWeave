@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import VideoCard from "@/components/VideoCard";
 import { VideoWithChannel } from "@shared/schema";
 import { 
@@ -22,6 +22,7 @@ const categoryConfig: Record<string, { icon: any; title: string; description: st
 
 export default function Explore() {
   const [, params] = useRoute("/explore/:category");
+  const [, navigate] = useLocation();
   const category = params?.category || "gaming";
   const config = categoryConfig[category] || categoryConfig.gaming;
   const Icon = config.icon;
@@ -78,7 +79,7 @@ export default function Explore() {
             <VideoCard
               key={video.id}
               video={video}
-              onClick={() => console.log('Play video:', video.id)}
+              onClick={() => navigate(`/watch/${video.id}`)}
             />
           ))}
         </div>

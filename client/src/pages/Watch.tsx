@@ -380,6 +380,33 @@ export default function Watch() {
     subscribeMutation.mutate();
   };
 
+  const handleShare = () => {
+    const videoUrl = window.location.href;
+    navigator.clipboard.writeText(videoUrl).then(() => {
+      toast({
+        title: "Link copied!",
+        description: "Video link has been copied to clipboard",
+      });
+    }).catch(() => {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy link to clipboard",
+        variant: "destructive"
+      });
+    });
+  };
+
+  const handleSave = () => {
+    if (!currentUserId) {
+      toast({ title: "Please log in", description: "You must be logged in to save videos", variant: "destructive" });
+      return;
+    }
+    toast({
+      title: "Coming soon",
+      description: "Save to playlist feature will be available soon",
+    });
+  };
+
   const handlePostComment = () => {
     if (!currentUserId) {
       toast({ title: "Please log in", description: "You must be logged in to comment", variant: "destructive" });
@@ -695,12 +722,22 @@ export default function Watch() {
                 </Button>
               </div>
 
-              <Button variant="secondary" size="sm" className="rounded-full h-10 px-5 hover:bg-secondary/80 transition-all shadow-sm">
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                className="rounded-full h-10 px-5 hover:bg-secondary/80 transition-all shadow-sm"
+                onClick={handleShare}
+              >
                 <Share2 className="h-4 w-4 mr-2" />
                 <span className="font-semibold">Share</span>
               </Button>
               
-              <Button variant="secondary" size="sm" className="rounded-full h-10 px-5 hover:bg-secondary/80 transition-all shadow-sm">
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                className="rounded-full h-10 px-5 hover:bg-secondary/80 transition-all shadow-sm"
+                onClick={handleSave}
+              >
                 <Clock className="h-4 w-4 mr-2" />
                 <span className="font-semibold">Save</span>
               </Button>
