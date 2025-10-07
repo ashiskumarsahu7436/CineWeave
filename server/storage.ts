@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type UpsertUser, type Channel, type InsertChannel, type Video, type InsertVideo, type Space, type InsertSpace, type Subscription, type InsertSubscription, type Comment, type InsertComment, type Like, type InsertLike, type WatchHistory, type InsertWatchHistory, type Playlist, type InsertPlaylist, type PlaylistVideo, type InsertPlaylistVideo, type VideoWithChannel, type SpaceWithChannels } from "@shared/schema";
+import { type User, type InsertUser, type UpsertUser, type Channel, type InsertChannel, type Video, type InsertVideo, type Space, type InsertSpace, type Subscription, type InsertSubscription, type Comment, type InsertComment, type Like, type InsertLike, type WatchHistory, type InsertWatchHistory, type Playlist, type InsertPlaylist, type PlaylistVideo, type InsertPlaylistVideo, type Notification, type InsertNotification, type VideoWithChannel, type SpaceWithChannels } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -72,6 +72,13 @@ export interface IStorage {
   addVideoToPlaylist(playlistVideo: InsertPlaylistVideo): Promise<PlaylistVideo>;
   removeVideoFromPlaylist(playlistId: string, videoId: string): Promise<boolean>;
   getPlaylistVideos(playlistId: string): Promise<PlaylistVideo[]>;
+
+  // Notification methods
+  getNotifications(userId: string, limit?: number): Promise<Notification[]>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: string): Promise<boolean>;
+  markAllNotificationsAsRead(userId: string): Promise<boolean>;
+  getUnreadCount(userId: string): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -85,6 +92,7 @@ export class MemStorage implements IStorage {
   private watchHistory: Map<string, WatchHistory> = new Map();
   private playlists: Map<string, Playlist> = new Map();
   private playlistVideos: Map<string, PlaylistVideo> = new Map();
+  private notifications: Map<string, Notification> = new Map();
 
   constructor() {
     this.seedData();
@@ -570,7 +578,7 @@ export class MemStorage implements IStorage {
 }
 
 import { db } from "./db";
-import { users, channels, videos, spaces, subscriptions, comments, likes, watchHistory, playlists, playlistVideos } from "@shared/schema";
+import { users, channels, videos, spaces, subscriptions, comments, likes, watchHistory, playlists, playlistVideos, notifications } from "@shared/schema";
 import { eq, and, or, ilike, inArray, sql, desc } from "drizzle-orm";
 
 export class DbStorage implements IStorage {
@@ -1110,6 +1118,55 @@ export class DbStorage implements IStorage {
       }
       throw error;
     }
+  }
+
+  async getNotifications(userId: string, limit: number = 50): Promise<Notification[]> {
+    try {
+      const result = await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.userId, userId))
+        .orderBy(desc(notifications.createdAt))
+        .limit(limit);
+      return this.normalizeArray(result);
+    } catch (error) {
+      if (this.isNeonNullError(error)) {
+        console.log("Neon null result detected in getNotifications, returning empty array");
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async createNotification(insertNotification: InsertNotification): Promise<Notification> {
+    const result = await db.insert(notifications).values(insertNotification).returning();
+    return result[0];
+  }
+
+  async markNotificationAsRead(id: string): Promise<boolean> {
+    const result = await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<boolean> {
+    const result = await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.userId, userId))
+      .returning();
+    return result.length > 0;
+  }
+
+  async getUnreadCount(userId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+    return result[0]?.count || 0;
   }
 }
 
