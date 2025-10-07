@@ -127,7 +127,11 @@ export const notifications = pgTable("notifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   type: text("type").notNull(),
+  title: text("title").notNull(),
   content: text("content").notNull(),
+  videoId: varchar("video_id"),
+  channelId: varchar("channel_id"),
+  thumbnail: text("thumbnail"),
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
