@@ -228,7 +228,8 @@ export class MemStorage implements IStorage {
       isLive: false,
       isShorts: insertVideo.isShorts ?? false,
       description: insertVideo.description ?? null,
-      category: insertVideo.category ?? null
+      category: insertVideo.category ?? null,
+      storageKey: insertVideo.storageKey ?? null
     };
     this.videos.set(id, video);
     return video;

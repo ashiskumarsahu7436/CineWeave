@@ -20,6 +20,7 @@ export interface VideoUploadResult {
   videoUrl: string;
   thumbnailUrl?: string;
   key: string;
+  storageKey: string;
 }
 
 /**
@@ -56,14 +57,13 @@ export async function uploadVideoToStorage(
 
   await upload.done();
   
-  // Construct CDN URL
-  const videoUrl = CDN_URL 
-    ? `${CDN_URL}/${key}`
-    : `https://${BUCKET_NAME}.${process.env.IDRIVE_ENDPOINT?.replace('https://', '')}/${key}`;
+  // Return clean API URL instead of iDrive URL
+  const videoUrl = `/api/videos/stream/${encodeURIComponent(key)}`;
 
   return {
     videoUrl,
     key,
+    storageKey: key,
   };
 }
 
@@ -132,13 +132,13 @@ export async function uploadVideoStream(
 
   await upload.done();
   
-  const videoUrl = CDN_URL 
-    ? `${CDN_URL}/${key}`
-    : `https://${BUCKET_NAME}.${process.env.IDRIVE_ENDPOINT?.replace('https://', '')}/${key}`;
+  // Return clean API URL instead of iDrive URL
+  const videoUrl = `/api/videos/stream/${encodeURIComponent(key)}`;
 
   return {
     videoUrl,
     key,
+    storageKey: key,
   };
 }
 
