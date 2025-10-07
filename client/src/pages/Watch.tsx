@@ -10,6 +10,14 @@ import { useToast } from "@/hooks/use-toast";
 import { VideoWithChannel, Comment } from "@shared/schema";
 import { useState, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 interface CommentWithUser extends Comment {
   user?: {
@@ -36,6 +44,8 @@ export default function Watch() {
   const [replyText, setReplyText] = useState("");
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState("");
 
   const { data: video, isLoading } = useQuery<VideoWithChannel>({
     queryKey: ["/api/videos", videoId],
@@ -349,6 +359,73 @@ export default function Watch() {
     }
   });
 
+  const { data: userPlaylists = [] } = useQuery({
+    queryKey: ["/api/playlists", currentUserId],
+    queryFn: async () => {
+      if (!currentUserId) return [];
+      const response = await fetch(`/api/playlists/${currentUserId}`);
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !!currentUserId
+  });
+
+  const createPlaylistMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const response = await fetch('/api/playlists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, isPublic: false })
+      });
+      if (!response.ok) throw new Error('Failed to create playlist');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/playlists", currentUserId] });
+      setNewPlaylistName("");
+      toast({ title: "Playlist created!" });
+    },
+    onError: () => {
+      toast({ 
+        title: "Error", 
+        description: "Failed to create playlist", 
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const addToPlaylistMutation = useMutation({
+    mutationFn: async (playlistId: string) => {
+      const response = await fetch(`/api/playlists/${playlistId}/videos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          videoId: videoId,
+          position: 0
+        })
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to add to playlist');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setSaveDialogOpen(false);
+      toast({ 
+        title: "Saved!", 
+        description: "Video added to playlist" 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to add video to playlist", 
+        variant: "destructive" 
+      });
+    }
+  });
+
   const handleVideoPlay = () => {
     if (!hasTrackedView && videoId) {
       trackViewMutation.mutate();
@@ -401,10 +478,12 @@ export default function Watch() {
       toast({ title: "Please log in", description: "You must be logged in to save videos", variant: "destructive" });
       return;
     }
-    toast({
-      title: "Coming soon",
-      description: "Save to playlist feature will be available soon",
-    });
+    setSaveDialogOpen(true);
+  };
+
+  const handleCreatePlaylist = () => {
+    if (!newPlaylistName.trim()) return;
+    createPlaylistMutation.mutate(newPlaylistName);
   };
 
   const handlePostComment = () => {
@@ -428,6 +507,12 @@ export default function Watch() {
   const handleEditComment = (commentId: string) => {
     if (!editText.trim()) return;
     updateCommentMutation.mutate({ id: commentId, content: editText });
+  };
+
+  const handleChannelClick = () => {
+    if (video?.channelId) {
+      setLocation(`/channel/${video.channelId}`);
+    }
   };
 
   const handleDeleteComment = (commentId: string) => {
@@ -661,7 +746,7 @@ export default function Watch() {
           <div className="flex items-start justify-between gap-4 flex-wrap">
             {/* Channel Section */}
             <div className="flex items-center gap-4 flex-1 min-w-0">
-              <Avatar className="h-12 w-12 flex-shrink-0 ring-2 ring-background cursor-pointer hover:ring-primary transition-all">
+              <Avatar className="h-12 w-12 flex-shrink-0 ring-2 ring-background cursor-pointer hover:ring-primary transition-all" onClick={handleChannelClick}>
                 <AvatarImage src={video.channel.avatar || undefined} />
                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-lg font-bold">
                   {video.channel.name[0]}
@@ -669,7 +754,7 @@ export default function Watch() {
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-base truncate hover:text-primary cursor-pointer transition-colors">
+                  <h2 className="font-semibold text-base truncate hover:text-primary cursor-pointer transition-colors" onClick={handleChannelClick}>
                     {video.channel.name}
                   </h2>
                   {video.channel.verified && (
@@ -907,6 +992,68 @@ export default function Watch() {
           </div>
         </div>
       </div>
+
+      {/* Save to Playlist Dialog */}
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save to playlist</DialogTitle>
+            <DialogDescription>
+              Choose a playlist or create a new one
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Playlist List */}
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {userPlaylists.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No playlists yet. Create one below!
+                </p>
+              ) : (
+                userPlaylists.map((playlist: any) => (
+                  <button
+                    key={playlist.id}
+                    onClick={() => addToPlaylistMutation.mutate(playlist.id)}
+                    disabled={addToPlaylistMutation.isPending}
+                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors text-left"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium">{playlist.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {playlist.isPublic ? 'Public' : 'Private'}
+                      </p>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+
+            {/* Create New Playlist */}
+            <div className="border-t pt-4 space-y-2">
+              <p className="text-sm font-medium">Create new playlist</p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Playlist name"
+                  value={newPlaylistName}
+                  onChange={(e) => setNewPlaylistName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCreatePlaylist();
+                    }
+                  }}
+                />
+                <Button 
+                  onClick={handleCreatePlaylist}
+                  disabled={!newPlaylistName.trim() || createPlaylistMutation.isPending}
+                >
+                  Create
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
