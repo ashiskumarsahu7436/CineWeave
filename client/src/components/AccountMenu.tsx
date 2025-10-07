@@ -21,8 +21,9 @@ import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/store/useAppStore";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import AuthModal from "./AuthModal";
+import ChannelCreationDialog from "./ChannelCreationDialog";
 
 interface AccountMenuProps {
   onClose?: () => void;
@@ -32,8 +33,22 @@ export default function AccountMenu({ onClose }: AccountMenuProps) {
   const { currentUserId, personalMode, setPersonalMode } = useAppStore();
   const { user, isAuthenticated } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showChannelCreation, setShowChannelCreation] = useState(false);
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+
+  // Check if user has a channel
+  const { data: userChannel, isLoading: channelLoading } = useQuery({
+    queryKey: ['/api/users', user?.id, 'channel'],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const res = await fetch(`/api/users/${user.id}/channel`);
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error('Failed to fetch channel');
+      return res.json();
+    },
+    enabled: !!user?.id && isAuthenticated,
+  });
 
   const handleSignOut = async () => {
     try {
@@ -67,7 +82,6 @@ export default function AccountMenu({ onClose }: AccountMenuProps) {
   const menuSections = [
     {
       items: [
-        { icon: User, label: "Your channel", action: () => console.log("Your channel") },
         { icon: UserPlus, label: "Switch account", action: () => console.log("Switch account") },
         { icon: LogOut, label: "Sign out", action: handleSignOut }
       ]
@@ -176,9 +190,24 @@ export default function AccountMenu({ onClose }: AccountMenuProps) {
               {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.firstName || user?.username || 'User'}
             </div>
             <div className="text-sm text-muted-foreground truncate">{user?.email || `@${user?.username || 'user'}`}</div>
-            <Link href="/channel/user" className="text-sm text-primary hover:underline">
-              View your channel
-            </Link>
+            {!channelLoading && (
+              userChannel ? (
+                <Link 
+                  href={`/channel/${userChannel.id}`} 
+                  onClick={onClose}
+                  className="text-sm text-primary hover:underline inline-block border-b-2 border-primary pb-0.5"
+                >
+                  View your channel
+                </Link>
+              ) : (
+                <button
+                  onClick={() => setShowChannelCreation(true)}
+                  className="text-sm text-primary hover:underline inline-block border-b-2 border-primary pb-0.5"
+                >
+                  Create channel
+                </button>
+              )
+            )}
           </div>
         </div>
 
@@ -241,6 +270,12 @@ export default function AccountMenu({ onClose }: AccountMenuProps) {
           </div>
         ))}
       </div>
+      
+      {/* Channel Creation Dialog */}
+      <ChannelCreationDialog 
+        open={showChannelCreation}
+        onOpenChange={setShowChannelCreation}
+      />
     </div>
   );
 }
