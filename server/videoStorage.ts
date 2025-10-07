@@ -1,0 +1,155 @@
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
+import { Readable } from "stream";
+
+// iDrive E2 S3-compatible client configuration
+export const s3Client = new S3Client({
+  endpoint: process.env.IDRIVE_ENDPOINT || "",
+  region: process.env.IDRIVE_REGION || "us-east-1",
+  credentials: {
+    accessKeyId: process.env.IDRIVE_ACCESS_KEY || "",
+    secretAccessKey: process.env.IDRIVE_SECRET_KEY || "",
+  },
+  forcePathStyle: true, // Required for S3-compatible services
+});
+
+const BUCKET_NAME = process.env.IDRIVE_BUCKET || "";
+const CDN_URL = process.env.CLOUDFLARE_CDN_URL || process.env.IDRIVE_PUBLIC_URL || "";
+
+export interface VideoUploadResult {
+  videoUrl: string;
+  thumbnailUrl?: string;
+  key: string;
+}
+
+/**
+ * Upload video to iDrive E2 storage
+ */
+export async function uploadVideoToStorage(
+  buffer: Buffer,
+  fileName: string,
+  contentType: string = "video/mp4"
+): Promise<VideoUploadResult> {
+  const key = `videos/${Date.now()}-${fileName}`;
+  
+  const upload = new Upload({
+    client: s3Client,
+    params: {
+      Bucket: BUCKET_NAME,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+      CacheControl: "public, max-age=31536000", // 1 year cache for videos
+    },
+    queueSize: 4,
+    partSize: 1024 * 1024 * 10, // 10MB parts for multipart upload
+    leavePartsOnError: false,
+  });
+
+  // Track upload progress
+  upload.on("httpUploadProgress", (progress) => {
+    if (progress.loaded && progress.total) {
+      const percentage = Math.round((progress.loaded / progress.total) * 100);
+      console.log(`Upload progress: ${percentage}%`);
+    }
+  });
+
+  await upload.done();
+  
+  // Construct CDN URL
+  const videoUrl = CDN_URL 
+    ? `${CDN_URL}/${key}`
+    : `https://${BUCKET_NAME}.${process.env.IDRIVE_ENDPOINT?.replace('https://', '')}/${key}`;
+
+  return {
+    videoUrl,
+    key,
+  };
+}
+
+/**
+ * Upload thumbnail to iDrive E2 storage
+ */
+export async function uploadThumbnailToStorage(
+  buffer: Buffer,
+  fileName: string,
+  contentType: string = "image/jpeg"
+): Promise<string> {
+  const key = `thumbnails/${Date.now()}-${fileName}`;
+  
+  const command = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    Body: buffer,
+    ContentType: contentType,
+    CacheControl: "public, max-age=31536000", // 1 year cache
+  });
+
+  await s3Client.send(command);
+  
+  // Construct CDN URL
+  const thumbnailUrl = CDN_URL 
+    ? `${CDN_URL}/${key}`
+    : `https://${BUCKET_NAME}.${process.env.IDRIVE_ENDPOINT?.replace('https://', '')}/${key}`;
+
+  return thumbnailUrl;
+}
+
+/**
+ * Delete video from iDrive E2 storage
+ */
+export async function deleteVideoFromStorage(key: string): Promise<void> {
+  const command = new DeleteObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+  });
+
+  await s3Client.send(command);
+}
+
+/**
+ * Upload video from stream (useful for large files)
+ */
+export async function uploadVideoStream(
+  stream: Readable,
+  fileName: string,
+  contentType: string = "video/mp4"
+): Promise<VideoUploadResult> {
+  const key = `videos/${Date.now()}-${fileName}`;
+  
+  const upload = new Upload({
+    client: s3Client,
+    params: {
+      Bucket: BUCKET_NAME,
+      Key: key,
+      Body: stream,
+      ContentType: contentType,
+      CacheControl: "public, max-age=31536000",
+    },
+    queueSize: 4,
+    partSize: 1024 * 1024 * 10,
+  });
+
+  await upload.done();
+  
+  const videoUrl = CDN_URL 
+    ? `${CDN_URL}/${key}`
+    : `https://${BUCKET_NAME}.${process.env.IDRIVE_ENDPOINT?.replace('https://', '')}/${key}`;
+
+  return {
+    videoUrl,
+    key,
+  };
+}
+
+/**
+ * Check if storage is configured
+ */
+export function isStorageConfigured(): boolean {
+  return !!(
+    process.env.IDRIVE_ENDPOINT &&
+    process.env.IDRIVE_ACCESS_KEY &&
+    process.env.IDRIVE_SECRET_KEY &&
+    process.env.IDRIVE_BUCKET
+  );
+}
