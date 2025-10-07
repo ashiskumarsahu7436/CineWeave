@@ -1,0 +1,127 @@
+==> Downloading cache...
+==> Cloning from https://github.com/ashiskumarsahu7436/CineWeave
+==> Checking out commit 57f0bca14ab4cfb6f9f290db031a61bdf86e7f5f in branch main
+==> Transferred 204MB in 7s. Extraction took 5s.
+==> Using Node.js version 22.16.0 (default)
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Running build command 'npm ci --include=dev && npm run build && npm run db:push'...
+added 630 packages, and audited 631 packages in 7s
+75 packages are looking for funding
+  run `npm fund` for details
+8 vulnerabilities (3 low, 5 moderate)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+vite v5.4.20 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 2072 modules transformed.
+rendering chunks...
+computing gzip size...
+../dist/public/index.html                   1.95 kB │ gzip:   0.74 kB
+../dist/public/assets/index-BWdTFDwD.css   69.97 kB │ gzip:  12.11 kB
+../dist/public/assets/index-BWhrtF4e.js   542.23 kB │ gzip: 154.83 kB
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 4.45s
+  dist/index.js  63.8kb
+⚡ Done in 8ms
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/render/project/src/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[✓] Pulling schema from database...
+[✓] Changes applied
+==> Uploading build...
+==> Uploaded in 6.7s. Compression took 3.9s
+==> Build successful 🎉
+==> Deploying...
+==> Running 'npm run start'
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+7:24:09 AM [express] serving on port 10000
+==> Your service is live 🎉
+==> 
+==> ///////////////////////////////////////////////////////////
+==> 
+==> Available at your primary URL https://cineweave.onrender.com
+==> 
+==> ///////////////////////////////////////////////////////////
+7:24:18 AM [express] GET /api/auth/user 304 in 12ms :: {"id":"105606771030291748826","username":null…
+7:24:18 AM [express] GET /api/videos 304 in 15ms :: []
+7:24:18 AM [express] GET /api/spaces/user/ 200 in 14ms
+7:24:18 AM [express] GET /api/users/105606771030291748826/channel 404 in 110ms :: {"message":"Channe…
+7:24:19 AM [express] GET /api/spaces/user/105606771030291748826 200 in 209ms :: []
+7:24:26 AM [express] GET /api/videos 304 in 9ms :: []
+7:24:52 AM [express] GET /api/auth/user 304 in 13ms :: {"id":"105606771030291748826","username":null…
+7:24:53 AM [express] GET /api/videos 304 in 20ms :: []
+7:24:53 AM [express] GET /api/users/105606771030291748826/channel 404 in 34ms :: {"message":"Channel…
+==> Detected service running on port 10000
+==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+Uploading video: Ganesh Aarti, JAI GANESH DEVA by Anuradha Paudwal with Hindi, English LyricsI I Full Video Song.mp4 (28.38 MB)
+7:34:07 AM [express] GET /api/auth/user 304 in 7ms :: {"id":"105606771030291748826","username":null,…
+7:34:07 AM [express] GET /api/users/105606771030291748826/channel 404 in 12ms :: {"message":"Channel…
+7:34:07 AM [express] GET /api/videos 304 in 84ms :: []
+7:34:07 AM [express] GET /api/spaces/user/ 304 in 89ms
+7:34:07 AM [express] GET /api/spaces/user/105606771030291748826 304 in 105ms :: []
+7:35:59 AM [express] GET /api/auth/user 304 in 7ms :: {"id":"105606771030291748826","username":null,…
+7:36:00 AM [express] GET /api/videos 304 in 22ms :: []
+7:36:00 AM [express] GET /api/users/105606771030291748826/channel 404 in 8ms :: {"message":"Channel …
+7:36:16 AM [express] GET /api/spaces/user/105606771030291748826 304 in 11ms :: []
+7:36:16 AM [express] GET /api/videos 304 in 23ms :: []
+Error uploading video: Error: connect ETIMEDOUT 198.73.183.9:80
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+  errno: -110,
+  code: 'ETIMEDOUT',
+  syscall: 'connect',
+  address: '198.73.183.9',
+  port: 80,
+  name: 'TimeoutError',
+  '$metadata': { attempts: 3, totalRetryDelay: 189 }
+}
+7:37:10 AM [express] POST /api/upload/video 500 in 407479ms :: {"message":"Failed to upload video: c…
+Uploading video: Ganesh Aarti, JAI GANESH DEVA by Anuradha Paudwal with Hindi, English LyricsI I Full Video Song.mp4 (28.38 MB)
+Error uploading video: Error: connect ETIMEDOUT 198.73.183.9:80
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+  errno: -110,
+  code: 'ETIMEDOUT',
+  syscall: 'connect',
+  address: '198.73.183.9',
+  port: 80,
+  name: 'TimeoutError',
+  '$metadata': { attempts: 3, totalRetryDelay: 183 }
+}
+7:49:15 AM [express] POST /api/upload/video 500 in 408801ms :: {"message":"Failed to upload video: c…
