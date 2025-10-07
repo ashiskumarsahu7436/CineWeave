@@ -33,13 +33,13 @@ export default function ChannelPage() {
 
   if (channelLoading || !channel) {
     return (
-      <div className="space-y-6">
-        <div className="h-48 bg-muted animate-pulse rounded-xl"></div>
-        <div className="flex gap-4">
-          <div className="w-32 h-32 bg-muted animate-pulse rounded-full"></div>
-          <div className="flex-1 space-y-3">
-            <div className="h-8 bg-muted animate-pulse rounded w-1/3"></div>
-            <div className="h-4 bg-muted animate-pulse rounded w-1/4"></div>
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="h-32 sm:h-40 md:h-48 bg-muted animate-pulse rounded-xl"></div>
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
+          <div className="h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 bg-muted animate-pulse rounded-full"></div>
+          <div className="flex-1 space-y-3 w-full">
+            <div className="h-8 bg-muted animate-pulse rounded w-1/3 mx-auto sm:mx-0"></div>
+            <div className="h-4 bg-muted animate-pulse rounded w-1/4 mx-auto sm:mx-0"></div>
           </div>
         </div>
       </div>
@@ -47,30 +47,30 @@ export default function ChannelPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="h-48 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl"></div>
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="h-32 sm:h-40 md:h-48 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl"></div>
 
-      <div className="flex items-start gap-6">
-        <Avatar className="h-32 w-32 border-4 border-background">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
+        <Avatar className="h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 border-2 sm:border-4 border-background">
           <AvatarImage src={channel.avatar || undefined} />
           <AvatarFallback className="text-4xl">{channel.name[0]}</AvatarFallback>
         </Avatar>
 
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <h1 className="text-3xl font-bold">{channel.name}</h1>
+        <div className="flex-1 w-full sm:w-auto">
+          <div className="flex items-center gap-2 mb-2 justify-center sm:justify-start">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center sm:text-left">{channel.name}</h1>
             {channel.verified && (
               <svg className="h-6 w-6 text-primary" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
               </svg>
             )}
           </div>
-          <p className="text-muted-foreground mb-1">@{channel.username}</p>
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="text-sm sm:text-base text-muted-foreground mb-1 text-center sm:text-left">@{channel.username}</p>
+          <p className="text-sm sm:text-base text-muted-foreground mb-4 text-center sm:text-left">
             {channel.subscribers?.toLocaleString()} subscribers • {videos.length} videos
           </p>
-          <p className="text-sm mb-4">{channel.description || "No description available."}</p>
-          <div className="flex gap-2">
+          <p className="text-sm mb-4 text-center sm:text-left">{channel.description || "No description available."}</p>
+          <div className="flex gap-2 flex-wrap justify-center sm:justify-start">
             <Button>Subscribe</Button>
             <Button variant="outline">Joined</Button>
           </div>
@@ -78,7 +78,7 @@ export default function ChannelPage() {
       </div>
 
       <Tabs defaultValue="home" className="w-full">
-        <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent">
+        <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent overflow-x-auto">
           <TabsTrigger value="home" className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent">Home</TabsTrigger>
           <TabsTrigger value="videos" className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent">Videos</TabsTrigger>
           <TabsTrigger value="shorts" className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent">Shorts</TabsTrigger>

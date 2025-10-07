@@ -60,9 +60,9 @@ export default function StudioContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-3xl font-bold">Channel content</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Channel content</h1>
           <p className="text-muted-foreground mt-1">Manage and analyze your content</p>
         </div>
         <Button className="gap-2" onClick={() => setUploadDialogOpen(true)}>
@@ -81,8 +81,8 @@ export default function StudioContent() {
         </TabsList>
 
         <TabsContent value="videos" className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div className="relative w-full sm:flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search across your channel"
@@ -95,77 +95,79 @@ export default function StudioContent() {
           {channelVideos.length > 0 ? (
             <Card>
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Video</TableHead>
-                      <TableHead>Visibility</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Views</TableHead>
-                      <TableHead className="text-right">Comments</TableHead>
-                      <TableHead className="text-right">Likes</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {channelVideos.map((video: any) => (
-                      <TableRow key={video.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="relative w-24 h-14 bg-muted rounded overflow-hidden flex-shrink-0">
-                              <img
-                                src={video.thumbnail}
-                                alt={video.title}
-                                className="w-full h-full object-cover"
-                              />
-                              <div className="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1 rounded">
-                                {video.duration}
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Video</TableHead>
+                        <TableHead>Visibility</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead className="text-right">Views</TableHead>
+                        <TableHead className="text-right">Comments</TableHead>
+                        <TableHead className="text-right">Likes</TableHead>
+                        <TableHead></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {channelVideos.map((video: any) => (
+                        <TableRow key={video.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="relative w-24 h-14 bg-muted rounded overflow-hidden flex-shrink-0">
+                                <img
+                                  src={video.thumbnail}
+                                  alt={video.title}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1 rounded">
+                                  {video.duration}
+                                </div>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium line-clamp-2 text-sm">{video.title}</p>
+                                <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                                  {video.description || 'No description'}
+                                </p>
                               </div>
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium line-clamp-2 text-sm">{video.title}</p>
-                              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                                {video.description || 'No description'}
-                              </p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">Public</Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(video.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-right">{video.views || 0}</TableCell>
-                        <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right">
-                          {video.likes || 0} ({video.dislikes ? `${(video.likes / (video.likes + video.dislikes) * 100).toFixed(1)}%` : '0%'})
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>View analytics</DropdownMenuItem>
-                              <DropdownMenuItem>Edit video</DropdownMenuItem>
-                              <DropdownMenuItem>Download</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">Public</Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(video.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="text-right">{video.views || 0}</TableCell>
+                          <TableCell className="text-right">0</TableCell>
+                          <TableCell className="text-right">
+                            {video.likes || 0} ({video.dislikes ? `${(video.likes / (video.likes + video.dislikes) * 100).toFixed(1)}%` : '0%'})
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem>View analytics</DropdownMenuItem>
+                                <DropdownMenuItem>Edit video</DropdownMenuItem>
+                                <DropdownMenuItem>Download</DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           ) : (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16">
-                <Video className="h-16 w-16 text-muted-foreground mb-4" />
+                <Video className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No videos uploaded yet</h3>
                 <p className="text-muted-foreground mb-6 text-center max-w-md">
                   Start creating content for your channel. Upload your first video to get started.
@@ -182,7 +184,7 @@ export default function StudioContent() {
         <TabsContent value="shorts">
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
-              <Video className="h-16 w-16 text-muted-foreground mb-4" />
+              <Video className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No Shorts yet</h3>
               <p className="text-muted-foreground mb-6 text-center max-w-md">
                 Create short-form vertical videos to reach a wider audience
@@ -194,7 +196,7 @@ export default function StudioContent() {
         <TabsContent value="live">
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
-              <Video className="h-16 w-16 text-muted-foreground mb-4" />
+              <Video className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">Go live</h3>
               <p className="text-muted-foreground mb-6 text-center max-w-md">
                 Stream live content to connect with your audience in real-time
@@ -206,7 +208,7 @@ export default function StudioContent() {
         <TabsContent value="posts">
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
-              <MessageSquare className="h-16 w-16 text-muted-foreground mb-4" />
+              <MessageSquare className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">Share community posts</h3>
               <p className="text-muted-foreground mb-6 text-center max-w-md">
                 Engage with your subscribers through text, images, and polls
@@ -218,7 +220,7 @@ export default function StudioContent() {
         <TabsContent value="playlists">
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
-              <Video className="h-16 w-16 text-muted-foreground mb-4" />
+              <Video className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">Create playlists</h3>
               <p className="text-muted-foreground mb-6 text-center max-w-md">
                 Organize your videos into collections for easier viewing

@@ -68,7 +68,7 @@ export default function Sidebar() {
 
   return (
     <aside className={cn(
-      "fixed left-0 top-14 bottom-0 bg-background border-r border-border overflow-y-auto sidebar-scrollbar z-40 transition-all duration-300",
+      "hidden md:fixed md:left-0 md:top-14 md:bottom-0 md:block bg-background border-r border-border overflow-y-auto sidebar-scrollbar z-40 transition-all duration-300",
       sidebarCollapsed ? "w-20" : "w-60"
     )}>
       <div className="py-2">

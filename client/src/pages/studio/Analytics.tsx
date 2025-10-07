@@ -47,14 +47,14 @@ export default function StudioAnalytics() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Channel analytics</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Channel analytics</h1>
           <p className="text-muted-foreground mt-1">Detailed performance metrics</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <Select defaultValue="28">
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -64,7 +64,7 @@ export default function StudioAnalytics() {
               <SelectItem value="365">Last 365 days</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline">Advanced mode</Button>
+          <Button variant="outline" className="hidden sm:inline-flex">Advanced mode</Button>
         </div>
       </div>
 
@@ -78,7 +78,7 @@ export default function StudioAnalytics() {
 
         <TabsContent value="overview" className="space-y-6">
           {/* Main Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Views</CardTitle>
@@ -152,46 +152,48 @@ export default function StudioAnalytics() {
             </CardHeader>
             <CardContent>
               {channelVideos.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Content</TableHead>
-                      <TableHead className="text-right">Duration</TableHead>
-                      <TableHead className="text-right">Publish date</TableHead>
-                      <TableHead className="text-right">Views</TableHead>
-                      <TableHead className="text-right">Avg view duration</TableHead>
-                      <TableHead className="text-right">Impressions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {channelVideos.slice(0, 10).map((video: any, index: number) => (
-                      <TableRow key={video.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <span className="text-muted-foreground">{index + 1}</span>
-                            <div className="relative w-20 h-12 bg-muted rounded overflow-hidden flex-shrink-0">
-                              <img
-                                src={video.thumbnail}
-                                alt={video.title}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <span className="font-medium line-clamp-1">{video.title}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">{video.duration}</TableCell>
-                        <TableCell className="text-right text-sm text-muted-foreground">
-                          {new Date(video.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">{video.views || 0}</TableCell>
-                        <TableCell className="text-right">
-                          {video.duration ? Math.floor(parseFloat(video.duration.split(':')[0]) * 60 * 0.5) + 's' : '0s'}
-                        </TableCell>
-                        <TableCell className="text-right">{(video.views || 0) + Math.floor(Math.random() * 100)}</TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Content</TableHead>
+                        <TableHead className="text-right">Duration</TableHead>
+                        <TableHead className="text-right">Publish date</TableHead>
+                        <TableHead className="text-right">Views</TableHead>
+                        <TableHead className="text-right">Avg view duration</TableHead>
+                        <TableHead className="text-right">Impressions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {channelVideos.slice(0, 10).map((video: any, index: number) => (
+                        <TableRow key={video.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <span className="text-muted-foreground">{index + 1}</span>
+                              <div className="relative w-20 h-12 bg-muted rounded overflow-hidden flex-shrink-0">
+                                <img
+                                  src={video.thumbnail}
+                                  alt={video.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <span className="font-medium line-clamp-1">{video.title}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">{video.duration}</TableCell>
+                          <TableCell className="text-right text-sm text-muted-foreground">
+                            {new Date(video.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">{video.views || 0}</TableCell>
+                          <TableCell className="text-right">
+                            {video.duration ? Math.floor(parseFloat(video.duration.split(':')[0]) * 60 * 0.5) + 's' : '0s'}
+                          </TableCell>
+                          <TableCell className="text-right">{(video.views || 0) + Math.floor(Math.random() * 100)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <Eye className="h-12 w-12 mx-auto mb-2 opacity-50" />

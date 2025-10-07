@@ -35,11 +35,11 @@ function formatTimeAgo(date: Date | string | null): string {
 export default function VideoCard({ video, onClick }: VideoCardProps) {
   return (
     <div 
-      className="video-card cursor-pointer"
+      className="video-card cursor-pointer space-y-2 sm:space-y-3"
       onClick={onClick}
       data-testid={`video-card-${video.id}`}
     >
-      <div className="video-card-thumbnail rounded-xl overflow-hidden mb-3">
+      <div className="video-card-thumbnail rounded-xl overflow-hidden">
         <img 
           src={video.thumbnail} 
           alt={video.title}
@@ -49,11 +49,11 @@ export default function VideoCard({ video, onClick }: VideoCardProps) {
         {video.isLive ? (
           <div className="live-badge">LIVE</div>
         ) : (
-          <div className="duration-badge">{video.duration}</div>
+          <div className="duration-badge text-xs px-1.5 sm:px-2">{video.duration}</div>
         )}
       </div>
-      <div className="flex gap-3">
-        <div className="channel-avatar flex-shrink-0">
+      <div className="flex gap-2 sm:gap-3">
+        <div className="channel-avatar flex-shrink-0 h-8 w-8 sm:h-9 sm:w-9">
           <img 
             src={video.channel.avatar || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&h=80&fit=crop"} 
             alt={video.channel.name}
@@ -61,10 +61,10 @@ export default function VideoCard({ video, onClick }: VideoCardProps) {
           />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-foreground line-clamp-2 mb-1">
+          <h3 className="text-sm sm:text-base font-semibold text-foreground line-clamp-2 mb-1">
             {video.title}
           </h3>
-          <p className="text-xs text-muted-foreground mb-0.5 flex items-center gap-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mb-0.5 flex items-center gap-1">
             {video.channel.name}
             {video.channel.verified && (
               <CheckCircle className="h-3 w-3 text-muted-foreground" />
@@ -80,14 +80,14 @@ export default function VideoCard({ video, onClick }: VideoCardProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="w-6 h-6 text-muted-foreground hover:text-foreground"
+          className="min-w-[44px] min-h-[44px] w-11 h-11 sm:w-6 sm:h-6 text-muted-foreground hover:text-foreground -mt-1"
           onClick={(e) => {
             e.stopPropagation();
             // Handle options menu
           }}
           data-testid={`button-video-options-${video.id}`}
         >
-          <MoreVertical className="h-4 w-4" />
+          <MoreVertical className="h-4 w-4 sm:h-5 sm:w-5" />
         </Button>
       </div>
     </div>

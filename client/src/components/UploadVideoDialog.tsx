@@ -398,14 +398,14 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] p-0 flex flex-col">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
-          <DialogTitle className="text-xl flex items-center gap-2">
+      <DialogContent className="max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-5xl max-h-[90vh] p-0 flex flex-col">
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b flex-shrink-0">
+          <DialogTitle className="text-lg sm:text-xl flex items-center gap-2">
             <Film className="h-5 w-5" />
             {currentStep === "upload" ? "Upload video" : selectedFile?.name || "video"}
           </DialogTitle>
           {currentStep === "upload" && (
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               Select or drag a video file to upload to your channel
             </DialogDescription>
           )}
@@ -413,9 +413,9 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
 
         <div className="flex-1 overflow-y-auto min-h-0">
           {currentStep === "upload" ? (
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <div
-                className={`border-2 border-dashed rounded-lg p-16 text-center transition-all ${
+                className={`border-2 border-dashed rounded-lg p-6 sm:p-8 md:p-12 lg:p-16 text-center transition-all ${
                   isDragging
                     ? "border-primary bg-primary/10 scale-[1.02]"
                     : "border-border hover:border-primary/50"
@@ -424,26 +424,26 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
-                <div className="flex flex-col items-center gap-6">
-                  <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                    <Upload className="w-16 h-16 text-primary" />
+                <div className="flex flex-col items-center gap-3 sm:gap-4 md:gap-6">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                    <Upload className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 text-primary" />
                   </div>
-                  <div className="space-y-3">
-                    <h3 className="text-xl font-semibold">
+                  <div className="space-y-2 sm:space-y-3">
+                    <h3 className="text-lg sm:text-xl font-semibold">
                       Drag and drop video files to upload
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Your videos will be private until you publish them.
                     </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                       <AlertCircle className="h-4 w-4" />
-                      <span>Max file size: {Math.floor(MAX_FILE_SIZE / (1024 * 1024))}MB • Supported: MP4, WebM, OGG, MOV</span>
+                      <span className="text-center">Max file size: {Math.floor(MAX_FILE_SIZE / (1024 * 1024))}MB • Supported: MP4, WebM, OGG, MOV</span>
                     </div>
                   </div>
                   <Button
                     onClick={() => fileInputRef.current?.click()}
                     size="lg"
-                    className="mt-2"
+                    className="mt-2 w-full sm:w-auto"
                   >
                     <Upload className="h-4 w-4 mr-2" />
                     Select files
@@ -459,13 +459,13 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
               </div>
             </div>
           ) : (
-            <div className="flex min-h-[500px]">
+            <div className="flex flex-col sm:flex-row min-h-[500px]">
               {/* Progress Stepper */}
-              <div className="w-64 bg-muted/30 p-6 border-r">
-                <div className="space-y-4">
+              <div className="w-full sm:w-48 md:w-64 bg-muted/30 p-4 sm:p-6 border-b sm:border-b-0 sm:border-r">
+                <div className="flex sm:flex-col gap-4 overflow-x-auto sm:overflow-x-visible pb-2 sm:pb-0">
                   {steps.map((step, index) => (
-                    <div key={step.id} className="flex items-start gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                    <div key={step.id} className="flex items-start gap-2 sm:gap-3 min-w-fit sm:min-w-0">
+                      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
                         step.completed 
                           ? "bg-primary text-primary-foreground" 
                           : currentStep === step.id
@@ -473,13 +473,13 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                           : "bg-muted text-muted-foreground"
                       }`}>
                         {step.completed ? (
-                          <Check className="w-4 h-4" />
+                          <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         ) : (
-                          <span className="text-sm font-medium">{index + 1}</span>
+                          <span className="text-xs sm:text-sm font-medium">{index + 1}</span>
                         )}
                       </div>
                       <div className="flex-1 pt-1">
-                        <p className={`text-sm font-medium ${
+                        <p className={`text-xs sm:text-sm font-medium whitespace-nowrap sm:whitespace-normal ${
                           currentStep === step.id ? "text-foreground" : "text-muted-foreground"
                         }`}>
                           {step.label}
@@ -491,7 +491,7 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
 
                 {/* Video Preview */}
                 {videoPreviewUrl && (
-                  <div className="mt-6 space-y-2">
+                  <div className="hidden sm:block mt-6 space-y-2">
                     <Label className="text-xs text-muted-foreground">Preview</Label>
                     <div className="relative rounded-lg overflow-hidden bg-black group">
                       <video
@@ -510,20 +510,20 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
               </div>
 
               {/* Content Area */}
-              <div className="flex-1 p-6">
+              <div className="flex-1 p-4 sm:p-6">
                 {isProcessing ? (
-                  <div className="flex flex-col items-center justify-center h-full space-y-4">
-                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                    <p className="text-lg font-medium">Processing video...</p>
-                    <p className="text-sm text-muted-foreground">{selectedFile?.name}</p>
+                  <div className="flex flex-col items-center justify-center h-full space-y-3 sm:space-y-4">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                    <p className="text-base sm:text-lg font-medium">Processing video...</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground text-center">{selectedFile?.name}</p>
                   </div>
                 ) : currentStep === "details" ? (
-                  <div className="space-y-6 max-w-2xl">
-                    <h2 className="text-2xl font-bold">Details</h2>
+                  <div className="space-y-4 sm:space-y-6 max-w-2xl">
+                    <h2 className="text-xl sm:text-2xl font-bold">Details</h2>
                     
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="video-title">
+                        <Label htmlFor="video-title" className="text-sm sm:text-base">
                           Title (required) <span className="text-destructive">*</span>
                         </Label>
                         <Input
@@ -531,7 +531,7 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                           placeholder="Add a title that describes your video"
                           value={videoTitle}
                           onChange={(e) => setVideoTitle(e.target.value)}
-                          className={`text-base ${errors.title ? 'border-destructive' : ''}`}
+                          className={`text-sm sm:text-base ${errors.title ? 'border-destructive' : ''}`}
                           maxLength={100}
                         />
                         <div className="flex justify-between items-center">
@@ -541,26 +541,26 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="video-description">Description</Label>
+                        <Label htmlFor="video-description" className="text-sm sm:text-base">Description</Label>
                         <Textarea
                           id="video-description"
                           placeholder="Tell viewers about your video"
                           value={videoDescription}
                           onChange={(e) => setVideoDescription(e.target.value)}
-                          rows={6}
-                          className="text-base"
+                          rows={4}
+                          className="text-sm sm:text-base min-h-[100px]"
                           maxLength={5000}
                         />
                         <p className="text-xs text-muted-foreground text-right">{videoDescription.length}/5000</p>
                       </div>
 
                       <div className="space-y-2">
-                        <Label>
+                        <Label className="text-sm sm:text-base">
                           Thumbnail <span className="text-destructive">*</span>
                         </Label>
-                        <div className="flex gap-4">
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                           {thumbnailPreview ? (
-                            <div className="relative w-40 h-24 bg-muted rounded border overflow-hidden group">
+                            <div className="relative w-full sm:w-40 max-h-32 sm:max-h-40 bg-muted rounded border overflow-hidden group">
                               <img 
                                 src={thumbnailPreview} 
                                 alt="Thumbnail" 
@@ -569,7 +569,7 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                               <Button
                                 variant="secondary"
                                 size="icon"
-                                className="absolute top-1 right-1 w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="absolute top-1 right-1 min-w-[44px] min-h-[44px] w-11 h-11 sm:w-6 sm:h-6 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
                                 onClick={() => {
                                   setThumbnail(null);
                                   setThumbnailPreview(null);
@@ -581,7 +581,7 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                           ) : (
                             <button
                               onClick={() => thumbnailInputRef.current?.click()}
-                              className={`w-40 h-24 border-2 border-dashed rounded hover:border-primary transition-colors flex items-center justify-center ${errors.thumbnail ? 'border-destructive' : ''}`}
+                              className={`w-full sm:w-40 h-24 sm:h-24 border-2 border-dashed rounded hover:border-primary transition-colors flex items-center justify-center ${errors.thumbnail ? 'border-destructive' : ''}`}
                             >
                               <Upload className="w-6 h-6 text-muted-foreground" />
                             </button>
@@ -594,7 +594,7 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                             className="hidden"
                           />
                           <div className="flex-1">
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               Upload a custom thumbnail to represent your video
                             </p>
                             {errors.thumbnail && (
@@ -605,11 +605,11 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="category">
+                        <Label htmlFor="category" className="text-sm sm:text-base">
                           Category <span className="text-destructive">*</span>
                         </Label>
                         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                          <SelectTrigger className={errors.category ? 'border-destructive' : ''}>
+                          <SelectTrigger className={`text-sm sm:text-base ${errors.category ? 'border-destructive' : ''}`}>
                             <SelectValue placeholder="Select a category" />
                           </SelectTrigger>
                           <SelectContent>
@@ -626,7 +626,7 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="tags">Tags</Label>
+                        <Label htmlFor="tags" className="text-sm sm:text-base">Tags</Label>
                         <div className="flex gap-2">
                           <Input
                             id="tags"
@@ -640,19 +640,20 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                               }
                             }}
                             disabled={tags.length >= 10}
+                            className="text-sm sm:text-base"
                           />
-                          <Button onClick={addTag} variant="outline" disabled={tags.length >= 10}>
+                          <Button onClick={addTag} variant="outline" disabled={tags.length >= 10} className="min-w-[44px] min-h-[44px]">
                             <Tag className="h-4 w-4" />
                           </Button>
                         </div>
                         {tags.length > 0 && (
                           <div className="flex flex-wrap gap-2 mt-2">
                             {tags.map((tag, index) => (
-                              <Badge key={index} variant="secondary" className="gap-1">
+                              <Badge key={index} variant="secondary" className="gap-1 text-xs sm:text-sm">
                                 {tag}
                                 <button
                                   onClick={() => removeTag(index)}
-                                  className="ml-1 hover:text-destructive"
+                                  className="ml-1 hover:text-destructive min-w-[20px] min-h-[20px]"
                                 >
                                   <X className="h-3 w-3" />
                                 </button>
@@ -664,9 +665,9 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Playlists</Label>
+                        <Label className="text-sm sm:text-base">Playlists</Label>
                         <Select value={selectedPlaylist} onValueChange={setSelectedPlaylist}>
-                          <SelectTrigger>
+                          <SelectTrigger className="text-sm sm:text-base">
                             <SelectValue placeholder="Select" />
                           </SelectTrigger>
                           <SelectContent>
@@ -678,20 +679,20 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                       </div>
 
                       <div className="space-y-3 pt-4 border-t">
-                        <Label>Audience</Label>
-                        <p className="text-sm text-muted-foreground">
+                        <Label className="text-sm sm:text-base">Audience</Label>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           Is this video made for kids?
                         </p>
                         <RadioGroup value={audienceType} onValueChange={setAudienceType}>
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-2 min-h-[44px]">
                             <RadioGroupItem value="yes" id="kids-yes" />
-                            <Label htmlFor="kids-yes" className="font-normal cursor-pointer">
+                            <Label htmlFor="kids-yes" className="text-sm sm:text-base font-normal cursor-pointer">
                               Yes, it's made for kids
                             </Label>
                           </div>
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-2 min-h-[44px]">
                             <RadioGroupItem value="no" id="kids-no" />
-                            <Label htmlFor="kids-no" className="font-normal cursor-pointer">
+                            <Label htmlFor="kids-no" className="text-sm sm:text-base font-normal cursor-pointer">
                               No, it's not made for kids
                             </Label>
                           </div>
@@ -700,143 +701,143 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                     </div>
                   </div>
                 ) : currentStep === "elements" ? (
-                  <div className="space-y-6 max-w-2xl">
-                    <h2 className="text-2xl font-bold">Video elements</h2>
-                    <p className="text-muted-foreground">
+                  <div className="space-y-4 sm:space-y-6 max-w-2xl">
+                    <h2 className="text-xl sm:text-2xl font-bold">Video elements</h2>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Use cards and an end screen to show viewers related videos, websites, and calls to action.
                     </p>
                     
-                    <div className="space-y-4 pt-4">
-                      <div className="p-4 border rounded-lg space-y-3 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <h3 className="font-semibold">Add related video</h3>
-                            <p className="text-sm text-muted-foreground">
+                    <div className="space-y-3 sm:space-y-4 pt-2 sm:pt-4">
+                      <div className="p-3 sm:p-4 border rounded-lg space-y-2 sm:space-y-3 hover:bg-muted/50 transition-colors">
+                        <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-3">
+                          <div className="space-y-1 flex-1">
+                            <h3 className="text-sm sm:text-base font-semibold">Add related video</h3>
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               Connect another of your videos to your video
                             </p>
                           </div>
-                          <Button variant="outline">Add</Button>
+                          <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">Add</Button>
                         </div>
                       </div>
 
-                      <div className="p-4 border rounded-lg space-y-3 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <h3 className="font-semibold">Add subtitles</h3>
-                            <p className="text-sm text-muted-foreground">
+                      <div className="p-3 sm:p-4 border rounded-lg space-y-2 sm:space-y-3 hover:bg-muted/50 transition-colors">
+                        <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-3">
+                          <div className="space-y-1 flex-1">
+                            <h3 className="text-sm sm:text-base font-semibold">Add subtitles</h3>
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               Reach a broader audience by adding subtitles to your video
                             </p>
                           </div>
-                          <Button variant="outline">Add</Button>
+                          <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">Add</Button>
                         </div>
                       </div>
 
-                      <div className="p-4 border rounded-lg space-y-3 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <h3 className="font-semibold">End screen</h3>
-                            <p className="text-sm text-muted-foreground">
+                      <div className="p-3 sm:p-4 border rounded-lg space-y-2 sm:space-y-3 hover:bg-muted/50 transition-colors">
+                        <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-3">
+                          <div className="space-y-1 flex-1">
+                            <h3 className="text-sm sm:text-base font-semibold">End screen</h3>
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               Add elements to the last 5-20 seconds of your video
                             </p>
                           </div>
-                          <Button variant="outline">Add</Button>
+                          <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">Add</Button>
                         </div>
                       </div>
                     </div>
                   </div>
                 ) : currentStep === "checks" ? (
-                  <div className="space-y-6 max-w-2xl">
-                    <h2 className="text-2xl font-bold">Checks</h2>
-                    <p className="text-muted-foreground">
+                  <div className="space-y-4 sm:space-y-6 max-w-2xl">
+                    <h2 className="text-xl sm:text-2xl font-bold">Checks</h2>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       We'll check your video for issues that may restrict its visibility and then you will have the opportunity to fix issues before publishing your video.
                     </p>
                     
-                    <div className="space-y-4 pt-4">
-                      <div className="p-6 border rounded-lg">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                            <Check className="w-5 h-5 text-green-500" />
+                    <div className="space-y-3 sm:space-y-4 pt-2 sm:pt-4">
+                      <div className="p-4 sm:p-6 border rounded-lg">
+                        <div className="flex items-center gap-3 mb-2 sm:mb-3">
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                            <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
                           </div>
                           <div>
-                            <h3 className="font-semibold">Copyright</h3>
-                            <p className="text-sm text-muted-foreground">No issues found</p>
+                            <h3 className="text-sm sm:text-base font-semibold">Copyright</h3>
+                            <p className="text-xs sm:text-sm text-muted-foreground">No issues found</p>
                           </div>
                         </div>
-                        <p className="text-sm text-muted-foreground ml-13">
+                        <p className="text-xs sm:text-sm text-muted-foreground ml-0 sm:ml-13">
                           Remember: These check results aren't final. Issues may come up in the future that impact your video.
                         </p>
                       </div>
 
-                      <div className="p-6 border rounded-lg">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                            <Check className="w-5 h-5 text-green-500" />
+                      <div className="p-4 sm:p-6 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                            <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
                           </div>
                           <div>
-                            <h3 className="font-semibold">Community guidelines</h3>
-                            <p className="text-sm text-muted-foreground">No issues found</p>
+                            <h3 className="text-sm sm:text-base font-semibold">Community guidelines</h3>
+                            <p className="text-xs sm:text-sm text-muted-foreground">No issues found</p>
                           </div>
                         </div>
                       </div>
 
-                      <div className="p-6 border rounded-lg">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                            <AlertCircle className="w-5 h-5 text-blue-500" />
+                      <div className="p-4 sm:p-6 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
                           </div>
                           <div>
-                            <h3 className="font-semibold">Video quality</h3>
-                            <p className="text-sm text-muted-foreground">Resolution: Auto-detected</p>
+                            <h3 className="text-sm sm:text-base font-semibold">Video quality</h3>
+                            <p className="text-xs sm:text-sm text-muted-foreground">Resolution: Auto-detected</p>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 ) : currentStep === "visibility" ? (
-                  <div className="space-y-6 max-w-2xl">
-                    <h2 className="text-2xl font-bold">Visibility</h2>
-                    <p className="text-muted-foreground">
+                  <div className="space-y-4 sm:space-y-6 max-w-2xl">
+                    <h2 className="text-xl sm:text-2xl font-bold">Visibility</h2>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Choose when to publish and who can see your video
                     </p>
                     
-                    <div className="space-y-4 pt-4">
+                    <div className="space-y-3 sm:space-y-4 pt-2 sm:pt-4">
                       <div className="space-y-3">
-                        <Label>Save or publish</Label>
-                        <p className="text-sm text-muted-foreground mb-4">
+                        <Label className="text-sm sm:text-base">Save or publish</Label>
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                           Make your video public, unlisted, or private
                         </p>
                         <RadioGroup value={visibility} onValueChange={(val) => setVisibility(val as any)}>
-                          <div className="space-y-3">
-                            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                          <div className="space-y-2 sm:space-y-3">
+                            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer min-h-[60px]">
                               <RadioGroupItem value="private" id="private" className="mt-1" />
                               <div className="flex-1">
                                 <Label htmlFor="private" className="font-normal cursor-pointer">
-                                  <div className="font-semibold">Private</div>
-                                  <div className="text-sm text-muted-foreground">
+                                  <div className="text-sm sm:text-base font-semibold">Private</div>
+                                  <div className="text-xs sm:text-sm text-muted-foreground">
                                     Only you and people you choose can watch your video
                                   </div>
                                 </Label>
                               </div>
                             </div>
                             
-                            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer min-h-[60px]">
                               <RadioGroupItem value="unlisted" id="unlisted" className="mt-1" />
                               <div className="flex-1">
                                 <Label htmlFor="unlisted" className="font-normal cursor-pointer">
-                                  <div className="font-semibold">Unlisted</div>
-                                  <div className="text-sm text-muted-foreground">
+                                  <div className="text-sm sm:text-base font-semibold">Unlisted</div>
+                                  <div className="text-xs sm:text-sm text-muted-foreground">
                                     Anyone with the video link can watch your video
                                   </div>
                                 </Label>
                               </div>
                             </div>
                             
-                            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer min-h-[60px]">
                               <RadioGroupItem value="public" id="public" className="mt-1" />
                               <div className="flex-1">
                                 <Label htmlFor="public" className="font-normal cursor-pointer">
-                                  <div className="font-semibold">Public</div>
-                                  <div className="text-sm text-muted-foreground">
+                                  <div className="text-sm sm:text-base font-semibold">Public</div>
+                                  <div className="text-xs sm:text-sm text-muted-foreground">
                                     Everyone can watch your video
                                   </div>
                                 </Label>
@@ -846,9 +847,9 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                         </RadioGroup>
                       </div>
 
-                      <div className="space-y-2 pt-4 border-t">
-                        <Label htmlFor="schedule">Schedule (Optional)</Label>
-                        <p className="text-sm text-muted-foreground mb-2">
+                      <div className="space-y-2 pt-3 sm:pt-4 border-t">
+                        <Label htmlFor="schedule" className="text-sm sm:text-base">Schedule (Optional)</Label>
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-2">
                           Select a date to make your video public
                         </p>
                         <Input
@@ -856,14 +857,15 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                           type="datetime-local"
                           value={scheduleDate}
                           onChange={(e) => setScheduleDate(e.target.value)}
+                          className="text-sm sm:text-base min-h-[44px]"
                         />
                       </div>
 
                       {isUploading && (
-                        <div className="space-y-2 pt-4">
-                          <Label>Upload Progress</Label>
+                        <div className="space-y-2 pt-3 sm:pt-4">
+                          <Label className="text-sm sm:text-base">Upload Progress</Label>
                           <Progress value={uploadProgress} className="h-2" />
-                          <p className="text-sm text-muted-foreground text-center">{uploadProgress}%</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground text-center">{uploadProgress}%</p>
                         </div>
                       )}
                     </div>
@@ -875,12 +877,12 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
         </div>
 
         {currentStep !== "upload" && !isProcessing && (
-          <div className="border-t px-6 py-4 flex items-center justify-between bg-background flex-shrink-0">
+          <div className="border-t px-4 sm:px-6 py-3 sm:py-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-background flex-shrink-0">
             <Button
               variant="outline"
               onClick={handleBack}
               disabled={currentStep === "details" || isUploading}
-              className="gap-2"
+              className="gap-2 w-full sm:w-auto min-h-[44px] px-4 py-2 sm:px-6 sm:py-2"
             >
               <ChevronLeft className="w-4 h-4" />
               Back
@@ -890,7 +892,7 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
               {currentStep === "visibility" ? (
                 <Button 
                   onClick={handleSave} 
-                  className="gap-2"
+                  className="gap-2 w-full sm:w-auto min-h-[44px] px-4 py-2 sm:px-6 sm:py-2"
                   disabled={isUploading}
                 >
                   {isUploading ? (
@@ -909,7 +911,7 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                 <Button 
                   onClick={handleNext}
                   disabled={currentStep === "details" && !videoTitle.trim()}
-                  className="gap-2"
+                  className="gap-2 w-full sm:w-auto min-h-[44px] px-4 py-2 sm:px-6 sm:py-2"
                 >
                   Next
                   <ChevronRight className="w-4 h-4" />

@@ -536,16 +536,16 @@ export default function Watch() {
 
   if (isLoading || !video) {
     return (
-      <div className="max-w-[1800px] mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr,400px] gap-6">
-          <div className="space-y-4">
+      <div className="max-w-[1800px] mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr,400px] gap-4 sm:gap-6">
+          <div className="space-y-3 sm:space-y-4">
             <div className="aspect-video bg-muted animate-pulse rounded-2xl"></div>
-            <div className="h-8 bg-muted animate-pulse rounded-lg w-3/4"></div>
-            <div className="flex gap-4">
-              <div className="w-12 h-12 bg-muted animate-pulse rounded-full"></div>
-              <div className="flex-1 space-y-3">
-                <div className="h-4 bg-muted animate-pulse rounded-lg w-1/4"></div>
-                <div className="h-3 bg-muted animate-pulse rounded-lg w-1/6"></div>
+            <div className="h-6 sm:h-8 bg-muted animate-pulse rounded-lg w-3/4"></div>
+            <div className="flex gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-muted animate-pulse rounded-full"></div>
+              <div className="flex-1 space-y-2 sm:space-y-3">
+                <div className="h-3 sm:h-4 bg-muted animate-pulse rounded-lg w-1/4"></div>
+                <div className="h-2 sm:h-3 bg-muted animate-pulse rounded-lg w-1/6"></div>
               </div>
             </div>
           </div>
@@ -560,14 +560,14 @@ export default function Watch() {
     const isReplying = replyTo === comment.id;
 
     return (
-      <div className={`flex gap-4 ${isReply ? 'ml-14 mt-3' : 'py-4'}`}>
-        <Avatar className="h-10 w-10 flex-shrink-0 ring-2 ring-background">
+      <div className={`flex gap-3 sm:gap-4 ${isReply ? 'ml-10 sm:ml-14 mt-2 sm:mt-3' : 'py-3 sm:py-4'}`}>
+        <Avatar className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 ring-2 ring-background">
           <AvatarImage src={comment.user?.profileImageUrl || undefined} />
           <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
             {comment.user?.username?.[0]?.toUpperCase() || 'U'}
           </AvatarFallback>
         </Avatar>
-        <div className="flex-1 space-y-2 min-w-0">
+        <div className="flex-1 space-y-1.5 sm:space-y-2 min-w-0">
           <div>
             <div className="flex items-baseline gap-2 mb-1 flex-wrap">
               <span className="font-semibold text-sm hover:text-primary cursor-pointer transition-colors">
@@ -713,8 +713,8 @@ export default function Watch() {
   };
 
   return (
-    <div className="max-w-[1800px] mx-auto px-4 py-6">
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr,400px] gap-6">
+    <div className="max-w-[1800px] mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr,400px] gap-4 sm:gap-6">
         {/* Main Content */}
         <div className="space-y-5">
           {/* Video Player */}
@@ -735,14 +735,14 @@ export default function Watch() {
           </div>
 
           {/* Video Title */}
-          <h1 className="text-2xl font-bold leading-tight hover:text-primary/90 transition-colors cursor-default">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight hover:text-primary/90 transition-colors cursor-default">
             {video.title}
           </h1>
           
           {/* Channel Info & Actions */}
-          <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4">
             {/* Channel Section */}
-            <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 w-full sm:w-auto">
               <Avatar className="h-12 w-12 flex-shrink-0 ring-2 ring-background cursor-pointer hover:ring-primary transition-all" onClick={handleChannelClick}>
                 <AvatarImage src={video.channel.avatar || undefined} />
                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-lg font-bold">
@@ -766,7 +766,7 @@ export default function Watch() {
               </div>
               <Button 
                 variant={isSubscribed ? "secondary" : "default"} 
-                className={`rounded-full px-6 h-10 font-semibold transition-all ${
+                className={`rounded-full px-4 py-1.5 sm:px-6 sm:py-2 h-auto font-semibold transition-all ${
                   isSubscribed 
                     ? 'hover:bg-secondary/80' 
                     : 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/30'
@@ -779,24 +779,24 @@ export default function Watch() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
               {/* Like/Dislike Group */}
               <div className="flex items-center bg-secondary/50 rounded-full overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className={`rounded-none h-10 px-4 ${userLike?.type === 'like' ? 'bg-primary/10 text-primary' : ''} hover:bg-primary/20 transition-all`}
+                  className={`rounded-none h-auto px-3 py-1.5 sm:px-4 sm:py-2 ${userLike?.type === 'like' ? 'bg-primary/10 text-primary' : ''} hover:bg-primary/20 transition-all`}
                   onClick={handleLike}
                   disabled={likeMutation.isPending}
                 >
-                  <ThumbsUp className={`h-4 w-4 mr-2 ${userLike?.type === 'like' ? 'fill-current' : ''}`} />
-                  <span className="font-semibold">{likeCounts.likes}</span>
+                  <ThumbsUp className={`h-4 w-4 mr-1.5 sm:mr-2 ${userLike?.type === 'like' ? 'fill-current' : ''}`} />
+                  <span className="font-semibold text-xs sm:text-sm">{likeCounts.likes}</span>
                 </Button>
                 <Separator orientation="vertical" className="h-6" />
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className={`rounded-none h-10 px-4 ${userLike?.type === 'dislike' ? 'bg-primary/10 text-primary' : ''} hover:bg-primary/20 transition-all`}
+                  className={`rounded-none h-auto px-3 py-1.5 sm:px-4 sm:py-2 ${userLike?.type === 'dislike' ? 'bg-primary/10 text-primary' : ''} hover:bg-primary/20 transition-all`}
                   onClick={handleDislike}
                   disabled={likeMutation.isPending}
                 >
@@ -807,32 +807,32 @@ export default function Watch() {
               <Button 
                 variant="secondary" 
                 size="sm" 
-                className="rounded-full h-10 px-5 hover:bg-secondary/80 transition-all shadow-sm"
+                className="rounded-full h-auto px-3 py-1.5 sm:px-5 sm:py-2 hover:bg-secondary/80 transition-all shadow-sm"
                 onClick={handleShare}
               >
-                <Share2 className="h-4 w-4 mr-2" />
-                <span className="font-semibold">Share</span>
+                <Share2 className="h-4 w-4 mr-1.5 sm:mr-2" />
+                <span className="font-semibold text-xs sm:text-sm">Share</span>
               </Button>
               
               <Button 
                 variant="secondary" 
                 size="sm" 
-                className="rounded-full h-10 px-5 hover:bg-secondary/80 transition-all shadow-sm"
+                className="rounded-full h-auto px-3 py-1.5 sm:px-5 sm:py-2 hover:bg-secondary/80 transition-all shadow-sm"
                 onClick={handleSave}
               >
-                <Clock className="h-4 w-4 mr-2" />
-                <span className="font-semibold">Save</span>
+                <Clock className="h-4 w-4 mr-1.5 sm:mr-2" />
+                <span className="font-semibold text-xs sm:text-sm">Save</span>
               </Button>
               
-              <Button variant="secondary" size="sm" className="rounded-full h-10 px-3 hover:bg-secondary/80 transition-all shadow-sm">
+              <Button variant="secondary" size="sm" className="rounded-full h-auto px-3 py-1.5 sm:py-2 hover:bg-secondary/80 transition-all shadow-sm">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </div>
           </div>
 
           {/* Description Section */}
-          <div className="bg-secondary/30 rounded-2xl p-5 hover:bg-secondary/40 transition-colors">
-            <div className="flex gap-4 text-sm font-semibold mb-3">
+          <div className="bg-secondary/30 rounded-2xl p-3 sm:p-4 md:p-5 hover:bg-secondary/40 transition-colors">
+            <div className="flex gap-2 sm:gap-4 text-xs sm:text-sm font-semibold mb-3 flex-wrap">
               <span className="text-foreground">{video.views?.toLocaleString()} views</span>
               <span className="text-muted-foreground">
                 {new Date(video.uploadedAt || Date.now()).toLocaleDateString('en-US', { 
@@ -867,19 +867,19 @@ export default function Watch() {
           </div>
 
           {/* Comments Section */}
-          <div className="space-y-6 pb-8">
-            <div className="flex items-center gap-4">
-              <h2 className="font-bold text-xl">{comments.length} Comments</h2>
+          <div className="space-y-4 sm:space-y-6 pb-6 sm:pb-8">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <h2 className="font-bold text-lg sm:text-xl">{comments.length} Comments</h2>
             </div>
             
             {/* Add Comment */}
-            <div className="flex gap-4">
+            <div className="flex gap-3 sm:gap-4">
               <Avatar className="h-10 w-10 flex-shrink-0 ring-2 ring-background">
                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
                   {currentUserId ? 'U' : 'G'}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1 space-y-3">
+              <div className="flex-1 space-y-2 sm:space-y-3">
                 <Textarea
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
@@ -930,17 +930,17 @@ export default function Watch() {
         </div>
 
         {/* Sidebar - Related Videos */}
-        <div className="space-y-3">
-          <div className="sticky top-4 space-y-3">
-            <h2 className="font-bold text-lg px-2">Related Videos</h2>
-            <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
+          <div className="sticky top-4 space-y-2 sm:space-y-3">
+            <h2 className="font-bold text-base sm:text-lg md:text-xl px-2">Related Videos</h2>
+            <div className="space-y-2 sm:space-y-3">
               {relatedVideos.map((relatedVideo) => (
                 <div 
                   key={relatedVideo.id} 
                   className="group flex gap-3 cursor-pointer hover:bg-secondary/30 p-2 rounded-xl transition-all duration-200"
                   onClick={() => handleRelatedVideoClick(relatedVideo.id)}
                 >
-                  <div className="w-[168px] flex-shrink-0 relative rounded-lg overflow-hidden">
+                  <div className="w-[140px] sm:w-[168px] flex-shrink-0 relative rounded-lg overflow-hidden">
                     <img
                       src={relatedVideo.thumbnail}
                       alt={relatedVideo.title}

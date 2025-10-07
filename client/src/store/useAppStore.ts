@@ -8,11 +8,13 @@ interface AppState {
   searchQuery: string;
   currentUserId: string;
   sidebarCollapsed: boolean;
+  mobileSidebarOpen: boolean;
   theme: Theme;
   setPersonalMode: (mode: boolean) => void;
   setSearchQuery: (query: string) => void;
   setCurrentUserId: (userId: string) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  setMobileSidebarOpen: (open: boolean) => void;
   setTheme: (theme: Theme) => void;
 }
 
@@ -23,11 +25,13 @@ export const useAppStore = create<AppState>()(
       searchQuery: "",
       currentUserId: "", // Will be set from authenticated user
       sidebarCollapsed: false,
+      mobileSidebarOpen: false,
       theme: 'dark',
       setPersonalMode: (mode: boolean) => set({ personalMode: mode }),
       setSearchQuery: (query: string) => set({ searchQuery: query }),
       setCurrentUserId: (userId: string) => set({ currentUserId: userId }),
       setSidebarCollapsed: (collapsed: boolean) => set({ sidebarCollapsed: collapsed }),
+      setMobileSidebarOpen: (open: boolean) => set({ mobileSidebarOpen: open }),
       setTheme: (theme: Theme) => set({ theme }),
     }),
     {

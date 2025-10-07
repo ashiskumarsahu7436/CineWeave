@@ -30,18 +30,18 @@ export default function SpaceCard({ space, onClick }: SpaceCardProps) {
   
   return (
     <div
-      className="bg-card border border-border rounded-xl p-5 hover:border-primary transition cursor-pointer"
+      className="bg-card border border-border rounded-xl p-3 sm:p-4 hover:border-primary transition cursor-pointer"
       onClick={onClick}
       data-testid={`space-card-${space.id}`}
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-3 sm:mb-4 gap-3 sm:gap-4">
         <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${gradientClass} flex items-center justify-center text-xl`}>
           {icon}
         </div>
         <Button
           variant="ghost"
           size="icon"
-          className="w-6 h-6 text-muted-foreground hover:text-foreground"
+          className="min-w-[44px] min-h-[44px] w-11 h-11 sm:w-6 sm:h-6 text-muted-foreground hover:text-foreground -mt-1"
           onClick={(e) => {
             e.stopPropagation();
             // Handle space options
@@ -51,8 +51,8 @@ export default function SpaceCard({ space, onClick }: SpaceCardProps) {
           <MoreVertical className="h-4 w-4" />
         </Button>
       </div>
-      <h3 className="text-base font-semibold text-foreground mb-1">{space.name}</h3>
-      <p className="text-sm text-muted-foreground mb-3">
+      <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">{space.name}</h3>
+      <p className="text-xs sm:text-sm text-muted-foreground mb-3">
         {space.channels.length} channels • {space.videoCount} videos
       </p>
       <div className="flex -space-x-2">

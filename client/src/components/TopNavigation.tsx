@@ -16,12 +16,13 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import AccountMenu from "@/components/AccountMenu";
+import Sidebar from "@/components/Sidebar";
 import logoImage from "@/assets/cineweave-logo.svg";
 
 export default function TopNavigation() {
   const [searchQuery, setSearchQuery] = useState("");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const { setSearchQuery: setGlobalSearchQuery, sidebarCollapsed, setSidebarCollapsed } = useAppStore();
+  const { setSearchQuery: setGlobalSearchQuery, sidebarCollapsed, setSidebarCollapsed, mobileSidebarOpen, setMobileSidebarOpen } = useAppStore();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
 
@@ -41,26 +42,53 @@ export default function TopNavigation() {
   return (
     <nav className="fixed top-0 left-0 right-0 h-14 bg-background border-b border-border z-50 flex items-center justify-between px-4">
       {/* Left Section */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
+        {/* Mobile Menu - Shows on < md */}
+        <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden w-10 h-10 hover:bg-muted"
+              data-testid="button-menu-mobile"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-60">
+            <VisuallyHidden>
+              <SheetHeader>
+                <SheetTitle>Navigation Menu</SheetTitle>
+              </SheetHeader>
+            </VisuallyHidden>
+            <div className="pt-2">
+              <Sidebar />
+            </div>
+          </SheetContent>
+        </Sheet>
+        
+        {/* Desktop Menu - Shows on >= md */}
         <Button
           variant="ghost"
           size="icon"
-          className="w-10 h-10 hover:bg-muted"
+          className="hidden md:flex w-10 h-10 hover:bg-muted"
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           data-testid="button-menu"
         >
           <Menu className="h-5 w-5" />
         </Button>
+        
         <div className="flex items-center gap-2">
-          <img src={logoImage} alt="CineWeave Logo" className="h-10 w-10 object-contain" />
-          <span className="text-xl font-bold text-foreground">CineWeave</span>
+          <img src={logoImage} alt="CineWeave Logo" className="h-8 w-8 sm:h-10 sm:w-10 object-contain" />
+          <span className="text-lg sm:text-xl font-bold text-foreground hidden xs:inline">CineWeave</span>
         </div>
       </div>
       
       {/* Center Section - Search */}
-      <div className="flex-1 max-w-2xl mx-8">
+      <div className="flex-1 max-w-2xl mx-2 sm:mx-8">
         <form onSubmit={handleSearch} className="flex items-center">
-          <div className="flex-1 flex items-center bg-secondary border border-border rounded-l-full overflow-hidden">
+          {/* Full search bar - hidden on < sm */}
+          <div className="hidden sm:flex flex-1 items-center bg-secondary border border-border rounded-l-full overflow-hidden">
             <Input
               type="text"
               placeholder="Search"
@@ -72,10 +100,21 @@ export default function TopNavigation() {
           </div>
           <Button
             type="submit"
-            className="px-6 py-2 bg-muted border border-l-0 border-border rounded-r-full hover:bg-secondary"
+            className="hidden sm:flex px-6 py-2 bg-muted border border-l-0 border-border rounded-r-full hover:bg-secondary"
             data-testid="button-search"
           >
             <Search className="h-4 w-4" />
+          </Button>
+          
+          {/* Mobile search icon - shows only on < sm */}
+          <Button
+            type="submit"
+            variant="ghost"
+            size="icon"
+            className="sm:hidden w-10 h-10 hover:bg-muted"
+            data-testid="button-search-mobile"
+          >
+            <Search className="h-5 w-5" />
           </Button>
         </form>
       </div>

@@ -33,14 +33,14 @@ export default function StudioDashboard() {
   const totalVideos = channelVideos.length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Channel dashboard</h1>
-        <p className="text-muted-foreground mt-1">Welcome to your creator dashboard</p>
+        <h1 className="text-2xl sm:text-3xl font-bold">Channel dashboard</h1>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">Welcome to your creator dashboard</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Subscribers</CardTitle>
@@ -92,8 +92,8 @@ export default function StudioDashboard() {
             <CardDescription>Your most recent upload</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
-              <div className="relative w-40 h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div className="relative w-32 h-20 sm:w-40 sm:h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                 <img
                   src={channelVideos[0].thumbnail}
                   alt={channelVideos[0].title}
