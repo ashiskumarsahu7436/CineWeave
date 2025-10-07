@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import VideoCard from "@/components/VideoCard";
@@ -22,6 +23,7 @@ const categoryFilters = [
 export default function Home() {
   const { personalMode, searchQuery, currentUserId } = useAppStore();
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [activeCategory, setActiveCategory] = useState("");
   const [showChannelCreation, setShowChannelCreation] = useState(false);
 
@@ -75,8 +77,7 @@ export default function Home() {
   });
 
   const handleVideoClick = (video: VideoWithChannel) => {
-    console.log("Playing video:", video.title);
-    // TODO: Navigate to video player page
+    setLocation(`/watch/${video.id}`);
   };
 
   const handleSpaceClick = (space: SpaceWithChannels) => {
