@@ -392,6 +392,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Upload video file to iDrive E2 storage
   app.post("/api/upload/video", (req, res, next) => {
+    // Set longer timeout for video uploads (5 minutes)
+    req.setTimeout(300000);
+    res.setTimeout(300000);
+    
     upload.single('video')(req, res, (err) => {
       if (err) {
         if (err.code === 'LIMIT_FILE_SIZE') {
@@ -440,6 +444,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.file.originalname,
         req.file.mimetype
       );
+
+      console.log(`Video uploaded successfully: ${result.key}`);
 
       res.json({
         message: "Video uploaded successfully",

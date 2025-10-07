@@ -11,6 +11,11 @@ export const s3Client = new S3Client({
     secretAccessKey: process.env.IDRIVE_SECRET_KEY || "",
   },
   forcePathStyle: true, // Required for S3-compatible services
+  requestHandler: {
+    // Increase connection timeout to 5 minutes for large uploads
+    connectionTimeout: 300000,
+    requestTimeout: 300000,
+  },
 });
 
 const BUCKET_NAME = process.env.IDRIVE_BUCKET || "";
@@ -33,6 +38,8 @@ export async function uploadVideoToStorage(
 ): Promise<VideoUploadResult> {
   const key = `videos/${Date.now()}-${fileName}`;
   
+  console.log(`Starting upload to iDrive: ${key} (${(buffer.length / (1024 * 1024)).toFixed(2)} MB)`);
+  
   const upload = new Upload({
     client: s3Client,
     params: {
@@ -43,7 +50,7 @@ export async function uploadVideoToStorage(
       CacheControl: "public, max-age=31536000", // 1 year cache for videos
     },
     queueSize: 4,
-    partSize: 1024 * 1024 * 10, // 10MB parts for multipart upload
+    partSize: 1024 * 1024 * 5, // 5MB parts for better reliability
     leavePartsOnError: false,
   });
 
@@ -51,11 +58,17 @@ export async function uploadVideoToStorage(
   upload.on("httpUploadProgress", (progress) => {
     if (progress.loaded && progress.total) {
       const percentage = Math.round((progress.loaded / progress.total) * 100);
-      console.log(`Upload progress: ${percentage}%`);
+      console.log(`Upload progress: ${percentage}% (${(progress.loaded / (1024 * 1024)).toFixed(2)} MB / ${(progress.total / (1024 * 1024)).toFixed(2)} MB)`);
     }
   });
 
-  await upload.done();
+  try {
+    await upload.done();
+    console.log(`Upload completed successfully: ${key}`);
+  } catch (error) {
+    console.error(`Upload failed for ${key}:`, error);
+    throw error;
+  }
   
   // Return clean API URL instead of iDrive URL
   const videoUrl = `/api/videos/stream/${encodeURIComponent(key)}`;
