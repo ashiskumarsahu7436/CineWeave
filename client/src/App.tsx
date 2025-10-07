@@ -1,6 +1,4 @@
 import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAppStore } from "@/store/useAppStore";
@@ -294,14 +292,12 @@ function App() {
   }, [user, setCurrentUserId]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <div className={theme === 'device' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme}>
-          <Toaster />
-          <Router />
-        </div>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <TooltipProvider>
+      <div className={theme === 'device' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme}>
+        <Toaster />
+        <Router />
+      </div>
+    </TooltipProvider>
   );
 }
 
