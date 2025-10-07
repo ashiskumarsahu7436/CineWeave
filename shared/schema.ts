@@ -47,6 +47,7 @@ export const videos = pgTable("videos", {
   title: text("title").notNull(),
   thumbnail: text("thumbnail").notNull(),
   videoUrl: text("video_url").notNull(),
+  storageKey: text("storage_key"),
   duration: text("duration").notNull(),
   views: integer("views").default(0),
   channelId: varchar("channel_id").notNull(),
