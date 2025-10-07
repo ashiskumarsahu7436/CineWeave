@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { Readable } from "stream";
 
@@ -139,6 +139,33 @@ export async function uploadVideoStream(
     videoUrl,
     key,
     storageKey: key,
+  };
+}
+
+/**
+ * Get video from iDrive E2 storage
+ */
+export async function getVideoFromStorage(
+  key: string,
+  range?: string
+): Promise<{ stream: Readable; contentLength: number; contentType: string; contentRange?: string }> {
+  const command = new GetObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    Range: range,
+  });
+
+  const response = await s3Client.send(command);
+
+  if (!response.Body) {
+    throw new Error("No video data returned from storage");
+  }
+
+  return {
+    stream: response.Body as Readable,
+    contentLength: response.ContentLength || 0,
+    contentType: response.ContentType || "video/mp4",
+    contentRange: response.ContentRange,
   };
 }
 

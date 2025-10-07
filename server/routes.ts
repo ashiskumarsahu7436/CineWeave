@@ -4,7 +4,7 @@ import multer from "multer";
 import { storage } from "./storage";
 import { insertUserSchema, insertChannelSchema, insertVideoSchema, insertSpaceSchema, insertSubscriptionSchema, insertCommentSchema, insertLikeSchema, insertWatchHistorySchema, insertPlaylistSchema, insertPlaylistVideoSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { uploadVideoToStorage, uploadThumbnailToStorage, isStorageConfigured } from "./videoStorage";
+import { uploadVideoToStorage, uploadThumbnailToStorage, isStorageConfigured, getVideoFromStorage } from "./videoStorage";
 import "./types";
 
 // Configure multer for memory storage
@@ -320,6 +320,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stream video from iDrive E2 (proxy endpoint to hide iDrive URLs)
+  app.get("/api/videos/stream/:key", async (req, res) => {
+    try {
+      // Check storage configuration
+      if (!isStorageConfigured()) {
+        return res.status(503).json({ message: "Video storage not configured" });
+      }
+
+      const storageKey = decodeURIComponent(req.params.key);
+      const range = req.headers.range;
+
+      // Fetch video from iDrive E2
+      const videoData = await getVideoFromStorage(storageKey, range);
+
+      // Set response headers for video streaming
+      res.setHeader("Content-Type", videoData.contentType);
+      res.setHeader("Accept-Ranges", "bytes");
+
+      if (range && videoData.contentRange) {
+        // Partial content (for seeking)
+        res.status(206);
+        res.setHeader("Content-Range", videoData.contentRange);
+        res.setHeader("Content-Length", videoData.contentLength.toString());
+      } else {
+        // Full content
+        res.setHeader("Content-Length", videoData.contentLength.toString());
+      }
+
+      // Stream video to client
+      videoData.stream.pipe(res);
+    } catch (error: any) {
+      console.error("Error streaming video:", error);
+      res.status(500).json({ message: "Failed to stream video: " + error.message });
+    }
+  });
+
   // Upload video file to iDrive E2 storage
   app.post("/api/upload/video", upload.single('video'), async (req: any, res) => {
     try {
@@ -361,7 +397,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         message: "Video uploaded successfully",
         videoUrl: result.videoUrl,
-        key: result.key
+        key: result.key,
+        storageKey: result.storageKey
       });
     } catch (error: any) {
       console.error("Error uploading video:", error);
@@ -450,7 +487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Validate required fields
-      const { title, thumbnail, videoUrl, duration, description, category, visibility } = req.body;
+      const { title, thumbnail, videoUrl, duration, description, category, visibility, storageKey } = req.body;
       
       if (!title || !thumbnail || !videoUrl || !duration) {
         return res.status(400).json({ message: "Missing required fields: title, thumbnail, videoUrl, duration" });
@@ -465,6 +502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         channelId: channel.id,
         description: description || null,
         category: category || null,
+        storageKey: storageKey || null,
         isShorts: duration && duration.includes(':') && parseInt(duration.split(':')[0]) === 0 && parseInt(duration.split(':')[1]) < 60,
       });
 
