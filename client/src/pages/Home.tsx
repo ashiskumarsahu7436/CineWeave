@@ -38,12 +38,7 @@ export default function Home() {
     enabled: !!user?.id,
   });
 
-  // Show channel creation dialog only for authenticated users without a channel
-  useEffect(() => {
-    if (!channelLoading && user && !userChannel) {
-      setShowChannelCreation(true);
-    }
-  }, [channelLoading, user, userChannel]);
+  // Removed auto-popup for better UX - users can create channel from AccountMenu
 
   // Fetch videos based on personal mode and search query
   const { data: videos = [], isLoading: videosLoading } = useQuery<VideoWithChannel[]>({
