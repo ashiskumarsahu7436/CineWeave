@@ -1,9 +1,31 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import multer from "multer";
 import { storage } from "./storage";
 import { insertUserSchema, insertChannelSchema, insertVideoSchema, insertSpaceSchema, insertSubscriptionSchema, insertCommentSchema, insertLikeSchema, insertWatchHistorySchema, insertPlaylistSchema, insertPlaylistVideoSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { uploadVideoToStorage, uploadThumbnailToStorage, isStorageConfigured } from "./videoStorage";
 import "./types";
+
+// Configure multer for memory storage
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 500 * 1024 * 1024, // 500MB limit
+  },
+  fileFilter: (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    
+    if (file.fieldname === 'video' && allowedVideoTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else if (file.fieldname === 'thumbnail' && allowedImageTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Invalid file type for ${file.fieldname}`));
+    }
+  },
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
@@ -296,6 +318,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error in GET /api/videos/:id:", error);
       res.status(500).json({ message: "Internal server error" });
     }
+  });
+
+  // Upload video file to iDrive E2 storage
+  app.post("/api/upload/video", upload.single('video'), async (req: any, res) => {
+    try {
+      // Check storage configuration
+      if (!isStorageConfigured()) {
+        return res.status(503).json({ 
+          message: "Video storage not configured. Please set up iDrive E2 credentials.",
+          configured: false
+        });
+      }
+
+      // Check authentication
+      let userId = null;
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      } else if (req.isAuthenticated() && req.user?.id) {
+        userId = req.user.id;
+      } else if (req.session && req.session.userId) {
+        userId = req.session.userId;
+      }
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No video file provided" });
+      }
+
+      console.log(`Uploading video: ${req.file.originalname} (${(req.file.size / (1024 * 1024)).toFixed(2)} MB)`);
+
+      // Upload to iDrive E2
+      const result = await uploadVideoToStorage(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype
+      );
+
+      res.json({
+        message: "Video uploaded successfully",
+        videoUrl: result.videoUrl,
+        key: result.key
+      });
+    } catch (error: any) {
+      console.error("Error uploading video:", error);
+      res.status(500).json({ message: "Failed to upload video: " + error.message });
+    }
+  });
+
+  // Upload thumbnail to iDrive E2 storage
+  app.post("/api/upload/thumbnail", upload.single('thumbnail'), async (req: any, res) => {
+    try {
+      // Check storage configuration
+      if (!isStorageConfigured()) {
+        return res.status(503).json({ 
+          message: "Storage not configured",
+          configured: false
+        });
+      }
+
+      // Check authentication
+      let userId = null;
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      } else if (req.isAuthenticated() && req.user?.id) {
+        userId = req.user.id;
+      } else if (req.session && req.session.userId) {
+        userId = req.session.userId;
+      }
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No thumbnail file provided" });
+      }
+
+      console.log(`Uploading thumbnail: ${req.file.originalname}`);
+
+      // Upload to iDrive E2
+      const thumbnailUrl = await uploadThumbnailToStorage(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype
+      );
+
+      res.json({
+        message: "Thumbnail uploaded successfully",
+        thumbnailUrl
+      });
+    } catch (error: any) {
+      console.error("Error uploading thumbnail:", error);
+      res.status(500).json({ message: "Failed to upload thumbnail: " + error.message });
+    }
+  });
+
+  // Check storage configuration status
+  app.get("/api/storage/status", async (req, res) => {
+    res.json({
+      configured: isStorageConfigured(),
+      provider: "iDrive E2",
+      cdnEnabled: !!process.env.CLOUDFLARE_CDN_URL
+    });
   });
 
   // Create video (upload)
