@@ -14,6 +14,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import AccountMenu from "@/components/AccountMenu";
 import logoImage from "@/assets/cineweave-logo.svg";
 
@@ -23,6 +24,12 @@ export default function TopNavigation() {
   const { setSearchQuery: setGlobalSearchQuery, sidebarCollapsed, setSidebarCollapsed } = useAppStore();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+
+  const { data: unreadData } = useQuery<{ count: number }>({
+    queryKey: ['/api/notifications', user?.id, 'unread-count'],
+    enabled: !!user?.id,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +120,9 @@ export default function TopNavigation() {
           data-testid="button-notifications"
         >
           <Bell className="h-5 w-5" />
-          <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full"></span>
+          {unreadData && unreadData.count > 0 && (
+            <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full"></span>
+          )}
         </Button>
         
         <Sheet open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
