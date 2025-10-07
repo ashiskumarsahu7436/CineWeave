@@ -152,11 +152,14 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
     if (controlsTimeout.current) {
       clearTimeout(controlsTimeout.current);
     }
+    // Hide controls faster on mobile (1.5s) vs desktop (3s)
+    const isMobile = window.innerWidth < 768;
+    const hideDelay = isMobile ? 1500 : 3000;
     controlsTimeout.current = setTimeout(() => {
       if (isPlaying) {
         setShowControls(false);
       }
-    }, 3000);
+    }, hideDelay);
   };
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -196,7 +199,7 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
 
       {/* Controls */}
       <div
-        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 transition-opacity duration-300 ${
+        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-2 sm:p-4 transition-opacity duration-300 ${
           showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -204,36 +207,36 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
         {/* Progress bar */}
         <div
           ref={progressRef}
-          className="w-full h-1 bg-white/30 rounded-full cursor-pointer mb-3 hover:h-1.5 transition-all group"
+          className="w-full h-2 sm:h-1 bg-white/30 rounded-full cursor-pointer mb-2 sm:mb-3 hover:h-2.5 sm:hover:h-1.5 transition-all group touch-none"
           onClick={handleProgressClick}
         >
           <div
             className="h-full bg-red-600 rounded-full relative"
             style={{ width: `${progress}%` }}
           >
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-3 sm:h-3 bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         </div>
 
         {/* Control buttons */}
-        <div className="flex items-center justify-between text-white">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between text-white gap-1">
+          <div className="flex items-center gap-1 sm:gap-2">
             {/* Play/Pause */}
             <Button
               variant="ghost"
               size="icon"
-              className="text-white hover:bg-white/20"
+              className="text-white hover:bg-white/20 h-10 w-10 sm:h-9 sm:w-9"
               onClick={togglePlay}
             >
               {isPlaying ? (
-                <Pause className="h-5 w-5" fill="currentColor" />
+                <Pause className="h-5 w-5 sm:h-5 sm:w-5" fill="currentColor" />
               ) : (
-                <Play className="h-5 w-5" fill="currentColor" />
+                <Play className="h-5 w-5 sm:h-5 sm:w-5" fill="currentColor" />
               )}
             </Button>
 
-            {/* Volume */}
-            <div className="flex items-center gap-2 group/volume">
+            {/* Volume - hide on very small screens */}
+            <div className="hidden sm:flex items-center gap-2 group/volume">
               <Button
                 variant="ghost"
                 size="icon"
@@ -258,19 +261,19 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
             </div>
 
             {/* Time */}
-            <span className="text-sm">
+            <span className="text-xs sm:text-sm">
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {/* Playback Speed */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-white hover:bg-white/20 text-xs"
+                  className="text-white hover:bg-white/20 text-xs h-8 px-2 sm:px-3 hidden sm:flex"
                 >
                   {playbackRate === 1 ? 'Normal' : `${playbackRate}x`}
                 </Button>
@@ -288,13 +291,13 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Quality */}
+            {/* Quality Settings */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:bg-white/20"
+                  className="text-white hover:bg-white/20 h-10 w-10 sm:h-9 sm:w-9 hidden sm:flex"
                 >
                   <Settings className="h-5 w-5" />
                 </Button>
@@ -322,7 +325,7 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
             <Button
               variant="ghost"
               size="icon"
-              className="text-white hover:bg-white/20"
+              className="text-white hover:bg-white/20 h-10 w-10 sm:h-9 sm:w-9"
               onClick={toggleFullscreen}
             >
               {isFullscreen ? (

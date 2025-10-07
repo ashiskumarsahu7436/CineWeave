@@ -92,9 +92,9 @@ export default function Home() {
 
   if (videosLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 w-full overflow-x-hidden">
         <div className="h-8 bg-muted animate-pulse rounded"></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="space-y-3">
               <div className="aspect-video bg-muted animate-pulse rounded-xl"></div>
@@ -113,9 +113,9 @@ export default function Home() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8 w-full overflow-x-hidden">
       {/* Category Filter Chips */}
-      <div className="flex items-center gap-3 overflow-x-auto pb-2">
+      <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
         {categoryFilters.map((filter) => (
           <Button
             key={filter.value}
@@ -158,7 +158,7 @@ export default function Home() {
 
       {/* Top Video Grid (First 2-3 rows = 8-12 videos) */}
       {videos.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {videos.slice(0, 12).map((video) => (
             <VideoCard
               key={video.id}
@@ -188,7 +188,7 @@ export default function Home() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {spaces.slice(0, 3).map((space) => (
               <SpaceCard
                 key={space.id}
@@ -215,7 +215,7 @@ export default function Home() {
 
       {/* Remaining Videos (After Spaces) */}
       {videos.length > 12 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {videos.slice(12).map((video) => (
             <VideoCard
               key={video.id}

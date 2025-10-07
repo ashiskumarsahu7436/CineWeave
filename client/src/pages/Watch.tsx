@@ -713,8 +713,8 @@ export default function Watch() {
   };
 
   return (
-    <div className="max-w-[1800px] mx-auto px-3 sm:px-4 py-4 sm:py-6">
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr,400px] gap-4 sm:gap-6">
+    <div className="max-w-[1800px] mx-auto px-2 sm:px-3 md:px-4 py-3 sm:py-4 md:py-6 w-full overflow-x-hidden">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr,400px] gap-3 sm:gap-4 md:gap-6 w-full">
         {/* Main Content */}
         <div className="space-y-5">
           {/* Video Player */}
@@ -735,12 +735,12 @@ export default function Watch() {
           </div>
 
           {/* Video Title */}
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight hover:text-primary/90 transition-colors cursor-default">
+          <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold leading-tight hover:text-primary/90 transition-colors cursor-default break-words">
             {video.title}
           </h1>
           
           {/* Channel Info & Actions */}
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-3 w-full">
             {/* Channel Section */}
             <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 w-full sm:w-auto">
               <Avatar className="h-12 w-12 flex-shrink-0 ring-2 ring-background cursor-pointer hover:ring-primary transition-all" onClick={handleChannelClick}>
@@ -930,17 +930,17 @@ export default function Watch() {
         </div>
 
         {/* Sidebar - Related Videos */}
-        <div className="space-y-2 sm:space-y-3">
-          <div className="sticky top-4 space-y-2 sm:space-y-3">
+        <div className="space-y-2 sm:space-y-3 w-full overflow-x-hidden">
+          <div className="xl:sticky top-4 space-y-2 sm:space-y-3">
             <h2 className="font-bold text-base sm:text-lg md:text-xl px-2">Related Videos</h2>
             <div className="space-y-2 sm:space-y-3">
               {relatedVideos.map((relatedVideo) => (
                 <div 
                   key={relatedVideo.id} 
-                  className="group flex gap-3 cursor-pointer hover:bg-secondary/30 p-2 rounded-xl transition-all duration-200"
+                  className="group flex gap-2 sm:gap-3 cursor-pointer hover:bg-secondary/30 p-2 rounded-xl transition-all duration-200"
                   onClick={() => handleRelatedVideoClick(relatedVideo.id)}
                 >
-                  <div className="w-[140px] sm:w-[168px] flex-shrink-0 relative rounded-lg overflow-hidden">
+                  <div className="w-[120px] sm:w-[140px] xl:w-[168px] flex-shrink-0 relative rounded-lg overflow-hidden">
                     <img
                       src={relatedVideo.thumbnail}
                       alt={relatedVideo.title}
