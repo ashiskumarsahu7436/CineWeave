@@ -45,13 +45,15 @@ Preferred communication style: Simple, everyday language.
 - Home page restructured for better content focus: removed "Blocked Channels" section from home page (moved to Settings/Library)
 - Video layout optimized to show content first, with "Your Spaces" section positioned after initial videos
 - Page designed to scale with content growth through natural scrolling
-- **Video Upload System Enhanced (Oct 6, 2025):**
+- **Video Upload System Enhanced (Oct 6-7, 2025):**
   - Added POST /api/videos backend endpoint with authentication and channel validation
   - Completely revamped upload dialog with modern UI/UX
   - Video preview functionality with duration extraction
   - Category selection (17 categories: Gaming, Music, Education, Entertainment, etc.)
   - Tags system (up to 10 tags per video)
-  - Real-time file validation (50MB limit, MP4/WebM/OGG/MOV formats)
+  - Real-time file validation (MP4/WebM/OGG/MOV formats)
+  - **iDrive E2 Integration:** Proper multipart upload to object storage (replaces base64 encoding)
+  - **File Size Limits:** 500MB default (configurable via MAX_UPLOAD_SIZE env var)
   - Upload progress tracking with visual progress bar
   - Enhanced thumbnail management with preview
   - Comprehensive error handling with specific user guidance
@@ -201,6 +203,15 @@ git push -u origin main
   - `NODE_ENV=production`
   - `SESSION_SECRET` - Random string for session encryption
   - `PORT` - Automatically set by Render (defaults to 5000 if not set)
+  - `MAX_UPLOAD_SIZE` - (Optional) Maximum file size in MB (default: 500)
+    - **Note:** Render free tier has 512MB RAM. Files >200-300MB may cause memory issues.
+    - For Render free tier, set to `200` to prevent out-of-memory errors
+    - For paid tiers with more RAM, you can increase this value
+  - `IDRIVE_ACCESS_KEY` - iDrive E2 access key for video storage
+  - `IDRIVE_SECRET_KEY` - iDrive E2 secret key
+  - `IDRIVE_ENDPOINT` - iDrive E2 endpoint URL
+  - `IDRIVE_BUCKET` - iDrive E2 bucket name
+  - `IDRIVE_REGION` - iDrive E2 region (e.g., 'us-east-1')
 
 **3. Database Setup:**
 After deployment, run migrations:

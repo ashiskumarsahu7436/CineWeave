@@ -8,10 +8,24 @@ import { uploadVideoToStorage, uploadThumbnailToStorage, isStorageConfigured, ge
 import "./types";
 
 // Configure multer for memory storage
+// Note: With Render free tier (512MB RAM), files larger than 200-300MB may cause memory issues
+// For production with more RAM, increase this limit accordingly
+const parseUploadSize = (): number => {
+  if (process.env.MAX_UPLOAD_SIZE) {
+    const parsed = parseInt(process.env.MAX_UPLOAD_SIZE, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      return parsed * 1024 * 1024; // Convert MB to bytes
+    }
+  }
+  return 500 * 1024 * 1024; // Default 500MB
+};
+
+const MAX_UPLOAD_SIZE = parseUploadSize();
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 500 * 1024 * 1024, // 500MB limit
+    fileSize: MAX_UPLOAD_SIZE,
   },
   fileFilter: (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
@@ -357,7 +371,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload video file to iDrive E2 storage
-  app.post("/api/upload/video", upload.single('video'), async (req: any, res) => {
+  app.post("/api/upload/video", (req, res, next) => {
+    upload.single('video')(req, res, (err) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          const maxSizeMB = Math.floor(MAX_UPLOAD_SIZE / (1024 * 1024));
+          return res.status(413).json({ 
+            message: `File too large. Maximum upload size is ${maxSizeMB}MB. For larger files, please upgrade your hosting plan or compress your video.`
+          });
+        }
+        return res.status(400).json({ message: err.message });
+      }
+      next();
+    });
+  }, async (req: any, res) => {
     try {
       // Check storage configuration
       if (!isStorageConfigured()) {
@@ -407,7 +434,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload thumbnail to iDrive E2 storage
-  app.post("/api/upload/thumbnail", upload.single('thumbnail'), async (req: any, res) => {
+  app.post("/api/upload/thumbnail", (req, res, next) => {
+    upload.single('thumbnail')(req, res, (err) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          const maxSizeMB = Math.floor(MAX_UPLOAD_SIZE / (1024 * 1024));
+          return res.status(413).json({ 
+            message: `Thumbnail too large. Maximum upload size is ${maxSizeMB}MB.`
+          });
+        }
+        return res.status(400).json({ message: err.message });
+      }
+      next();
+    });
+  }, async (req: any, res) => {
     try {
       // Check storage configuration
       if (!isStorageConfigured()) {
@@ -459,7 +499,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({
       configured: isStorageConfigured(),
       provider: "iDrive E2",
-      cdnEnabled: !!process.env.CLOUDFLARE_CDN_URL
+      cdnEnabled: !!process.env.CLOUDFLARE_CDN_URL,
+      maxUploadSize: MAX_UPLOAD_SIZE,
+      maxUploadSizeMB: Math.floor(MAX_UPLOAD_SIZE / (1024 * 1024))
     });
   });
 

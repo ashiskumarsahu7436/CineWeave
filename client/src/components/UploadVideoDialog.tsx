@@ -51,7 +51,7 @@ const VIDEO_CATEGORIES = [
   "Other"
 ];
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB for base64 encoding
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB limit (matches server-side multer config)
 const ACCEPTED_VIDEO_FORMATS = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
 
 export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDialogProps) {
@@ -261,21 +261,47 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
     setUploadProgress(0);
 
     try {
-      // Simulate upload progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return prev;
-          }
-          return prev + 10;
-        });
-      }, 200);
+      // Upload video file to iDrive E2
+      setUploadProgress(10);
+      const videoFormData = new FormData();
+      videoFormData.append('video', selectedFile);
 
-      // Convert video and thumbnail to base64 for demo (in production, use file upload service)
-      const videoBase64 = await convertFileToBase64(selectedFile);
-      const thumbnailBase64 = await convertFileToBase64(thumbnail);
+      const videoUploadResponse = await fetch('/api/upload/video', {
+        method: 'POST',
+        body: videoFormData,
+      });
 
+      if (!videoUploadResponse.ok) {
+        const error = await videoUploadResponse.json();
+        if (videoUploadResponse.status === 401) {
+          throw new Error('Please login to upload videos');
+        } else if (videoUploadResponse.status === 503) {
+          throw new Error('Video storage not configured. Please set up iDrive E2 credentials.');
+        }
+        throw new Error(error.message || 'Failed to upload video file');
+      }
+
+      const videoResult = await videoUploadResponse.json();
+      setUploadProgress(50);
+
+      // Upload thumbnail to iDrive E2
+      const thumbnailFormData = new FormData();
+      thumbnailFormData.append('thumbnail', thumbnail);
+
+      const thumbnailUploadResponse = await fetch('/api/upload/thumbnail', {
+        method: 'POST',
+        body: thumbnailFormData,
+      });
+
+      if (!thumbnailUploadResponse.ok) {
+        const error = await thumbnailUploadResponse.json();
+        throw new Error(error.message || 'Failed to upload thumbnail');
+      }
+
+      const thumbnailResult = await thumbnailUploadResponse.json();
+      setUploadProgress(75);
+
+      // Create video record in database
       const response = await fetch('/api/videos', {
         method: 'POST',
         headers: {
@@ -284,8 +310,9 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
         body: JSON.stringify({
           title: videoTitle,
           description: videoDescription || undefined,
-          thumbnail: thumbnailBase64,
-          videoUrl: videoBase64,
+          thumbnail: thumbnailResult.thumbnailUrl,
+          videoUrl: videoResult.videoUrl,
+          storageKey: videoResult.storageKey,
           duration: videoDuration,
           category: selectedCategory || undefined,
           tags: tags.length > 0 ? tags : undefined,
@@ -296,7 +323,6 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
         }),
       });
 
-      clearInterval(progressInterval);
       setUploadProgress(100);
 
       if (!response.ok) {
@@ -310,8 +336,6 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
             throw new Error('Please create a channel before uploading videos. Go to Studio Settings to create one.');
           }
           throw new Error(error.message || 'Invalid video data. Please check all required fields.');
-        } else if (response.status === 413) {
-          throw new Error('File too large. Please use a smaller video file (max 50MB).');
         }
         
         throw new Error(error.message || 'Upload failed');
@@ -413,7 +437,7 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                     </p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <AlertCircle className="h-4 w-4" />
-                      <span>Max file size: {MAX_FILE_SIZE / (1024 * 1024)}MB • Supported: MP4, WebM, OGG, MOV</span>
+                      <span>Max file size: {Math.floor(MAX_FILE_SIZE / (1024 * 1024))}MB • Supported: MP4, WebM, OGG, MOV</span>
                     </div>
                   </div>
                   <Button
