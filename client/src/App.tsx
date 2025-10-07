@@ -30,6 +30,7 @@ import KeyboardShortcuts from "@/pages/KeyboardShortcuts";
 import StudioDashboard from "@/pages/studio/Dashboard";
 import StudioContent from "@/pages/studio/Content";
 import StudioAnalytics from "@/pages/studio/Analytics";
+import StudioSettings from "@/pages/studio/Settings";
 import NotFound from "@/pages/not-found";
 
 // Protected route wrapper
@@ -105,10 +106,7 @@ function Router() {
         {() => (
           <ProtectedRoute component={() => (
             <StudioLayout>
-              <div className="text-center py-16">
-                <h2 className="text-2xl font-bold mb-2">Studio Settings</h2>
-                <p className="text-muted-foreground">Configure your channel preferences</p>
-              </div>
+              <StudioSettings />
             </StudioLayout>
           )} />
         )}

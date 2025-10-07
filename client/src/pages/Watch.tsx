@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { VideoWithChannel, Comment } from "@shared/schema";
 import { useState, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
+import CustomVideoPlayer from "@/components/CustomVideoPlayer";
 import {
   Dialog,
   DialogContent,
@@ -718,11 +719,9 @@ export default function Watch() {
         <div className="space-y-5">
           {/* Video Player */}
           <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
-            <video
-              ref={videoRef}
+            <CustomVideoPlayer
               src={video.videoUrl}
-              controls
-              className="w-full h-full"
+              videoRef={videoRef}
               onPlay={handleVideoPlay}
               onError={(e) => {
                 console.error("Video error:", e);
@@ -732,9 +731,7 @@ export default function Watch() {
                   variant: "destructive" 
                 });
               }}
-            >
-              Your browser does not support the video tag.
-            </video>
+            />
           </div>
 
           {/* Video Title */}
