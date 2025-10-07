@@ -616,6 +616,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const video = await storage.createVideo(videoData);
       
+      // Create notifications for all subscribers of this channel
+      const channelSubscribers = await storage.getChannelSubscribers(channel.id);
+      const notificationPromises = channelSubscribers.map(async (subscriber) => {
+        await storage.createNotification({
+          userId: subscriber.userId,
+          type: 'video_upload',
+          title: `New video from ${channel.name}`,
+          content: video.title,
+          videoId: video.id,
+          channelId: channel.id,
+          thumbnail: video.thumbnail,
+        });
+      });
+      
+      await Promise.all(notificationPromises);
+      
       res.status(201).json({
         message: "Video uploaded successfully",
         video: { ...video, channel }
@@ -692,6 +708,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const subData = insertSubscriptionSchema.parse({ ...req.body, userId });
       const subscription = await storage.subscribe(subData);
+      
+      // Notify channel owner about new subscriber
+      const channel = await storage.getChannel(subscription.channelId);
+      if (channel) {
+        const subscriber = await storage.getUser(userId);
+        if (subscriber) {
+          await storage.createNotification({
+            userId: channel.userId,
+            type: 'new_subscriber',
+            title: 'New subscriber',
+            content: `${subscriber.username || subscriber.firstName || 'Someone'} subscribed to your channel`,
+            channelId: channel.id,
+            thumbnail: subscriber.profileImageUrl || null,
+          });
+        }
+      }
+      
       res.status(201).json(subscription);
     } catch (error) {
       res.status(400).json({ message: "Invalid subscription data" });
@@ -783,6 +816,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         videoId: req.params.videoId
       });
       const comment = await storage.createComment(commentData);
+      
+      // Notify video owner about new comment
+      const video = await storage.getVideo(req.params.videoId);
+      if (video) {
+        const channel = await storage.getChannel(video.channelId);
+        if (channel && channel.userId !== userId) {
+          const commenter = await storage.getUser(userId);
+          await storage.createNotification({
+            userId: channel.userId,
+            type: 'comment',
+            title: 'New comment on your video',
+            content: `${commenter?.username || commenter?.firstName || 'Someone'} commented: ${comment.content.substring(0, 50)}${comment.content.length > 50 ? '...' : ''}`,
+            videoId: video.id,
+            channelId: channel.id,
+            thumbnail: video.thumbnail,
+          });
+        }
+      }
+      
       res.status(201).json(comment);
     } catch (error) {
       res.status(400).json({ message: "Invalid comment data" });

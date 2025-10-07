@@ -36,6 +36,7 @@ export interface IStorage {
 
   // Subscription methods
   getSubscriptions(userId: string): Promise<Subscription[]>;
+  getChannelSubscribers(channelId: string): Promise<Subscription[]>;
   isSubscribed(userId: string, channelId: string): Promise<boolean>;
   subscribe(subscription: InsertSubscription): Promise<Subscription>;
   unsubscribe(userId: string, channelId: string): Promise<boolean>;
@@ -300,6 +301,10 @@ export class MemStorage implements IStorage {
   // Subscription methods
   async getSubscriptions(userId: string): Promise<Subscription[]> {
     return Array.from(this.subscriptions.values()).filter(sub => sub.userId === userId);
+  }
+
+  async getChannelSubscribers(channelId: string): Promise<Subscription[]> {
+    return Array.from(this.subscriptions.values()).filter(sub => sub.channelId === channelId);
   }
 
   async isSubscribed(userId: string, channelId: string): Promise<boolean> {
@@ -833,6 +838,19 @@ export class DbStorage implements IStorage {
     } catch (error) {
       if (this.isNeonNullError(error)) {
         console.log("Neon null result detected in getSubscriptions, returning empty array");
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async getChannelSubscribers(channelId: string): Promise<Subscription[]> {
+    try {
+      const result = await db.select().from(subscriptions).where(eq(subscriptions.channelId, channelId));
+      return this.normalizeArray(result);
+    } catch (error) {
+      if (this.isNeonNullError(error)) {
+        console.log("Neon null result detected in getChannelSubscribers, returning empty array");
         return [];
       }
       throw error;
