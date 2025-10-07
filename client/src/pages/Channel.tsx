@@ -77,11 +77,32 @@ export default function ChannelPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="videos" className="w-full">
-        <TabsList>
-          <TabsTrigger value="videos">Videos</TabsTrigger>
-          <TabsTrigger value="about">About</TabsTrigger>
+      <Tabs defaultValue="home" className="w-full">
+        <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent">
+          <TabsTrigger value="home" className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent">Home</TabsTrigger>
+          <TabsTrigger value="videos" className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent">Videos</TabsTrigger>
+          <TabsTrigger value="shorts" className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent">Shorts</TabsTrigger>
+          <TabsTrigger value="posts" className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent">Posts</TabsTrigger>
+          <TabsTrigger value="about" className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent">About</TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="home" className="mt-6">
+          {videos.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No videos yet</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {videos.slice(0, 8).map((video) => (
+                <VideoCard
+                  key={video.id}
+                  video={video}
+                  onClick={() => console.log('Play video:', video.id)}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
         
         <TabsContent value="videos" className="mt-6">
           {videos.length === 0 ? (
@@ -99,6 +120,18 @@ export default function ChannelPage() {
               ))}
             </div>
           )}
+        </TabsContent>
+        
+        <TabsContent value="shorts" className="mt-6">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No shorts yet</p>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="posts" className="mt-6">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No posts yet</p>
+          </div>
         </TabsContent>
         
         <TabsContent value="about" className="mt-6">
