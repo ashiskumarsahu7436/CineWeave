@@ -21,7 +21,7 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       personalMode: false,
       searchQuery: "",
-      currentUserId: "cc700eff-ddf5-4ccb-9e31-bc55183580b3", // Default user from seed
+      currentUserId: "", // Will be set from authenticated user
       sidebarCollapsed: false,
       theme: 'dark',
       setPersonalMode: (mode: boolean) => set({ personalMode: mode }),

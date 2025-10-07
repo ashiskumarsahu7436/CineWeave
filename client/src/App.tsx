@@ -269,7 +269,8 @@ function Router() {
 }
 
 function App() {
-  const { theme } = useAppStore();
+  const { theme, setCurrentUserId } = useAppStore();
+  const { user } = useAuth();
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -282,6 +283,15 @@ function App() {
       root.classList.add(theme);
     }
   }, [theme]);
+
+  // Sync authenticated user ID with store
+  useEffect(() => {
+    if (user?.id) {
+      setCurrentUserId(user.id);
+    } else {
+      setCurrentUserId("");
+    }
+  }, [user, setCurrentUserId]);
 
   return (
     <QueryClientProvider client={queryClient}>

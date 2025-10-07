@@ -41,6 +41,26 @@ const upload = multer({
   },
 });
 
+// Helper function to get user ID from request (works with all auth methods)
+function getUserIdFromRequest(req: any): string | null {
+  // Check if authenticated via Replit Auth
+  if (req.isAuthenticated() && req.user?.claims?.sub) {
+    return req.user.claims.sub;
+  }
+  
+  // Check if authenticated via Google OAuth
+  if (req.isAuthenticated() && req.user?.id) {
+    return req.user.id;
+  }
+  
+  // Check if authenticated via email (session-based)
+  if (req.session && req.session.userId) {
+    return req.session.userId;
+  }
+  
+  return null;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
 
@@ -620,7 +640,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/subscriptions", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserIdFromRequest(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const subData = insertSubscriptionSchema.parse({ ...req.body, userId });
       const subscription = await storage.subscribe(subData);
       res.status(201).json(subscription);
@@ -631,7 +654,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/subscriptions", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserIdFromRequest(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const { channelId } = req.body;
       if (!channelId) {
         return res.status(400).json({ message: "ChannelId required" });
@@ -647,22 +673,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Blocking routes
-  app.post("/api/users/:userId/block", async (req, res) => {
+  app.post("/api/users/:userId/block", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Users can only block channels for themselves
+      if (userId !== req.params.userId) {
+        return res.status(403).json({ message: "Forbidden: Can only block channels for your own account" });
+      }
+      
       const { channelId } = req.body;
       if (!channelId) {
         return res.status(400).json({ message: "Channel ID required" });
       }
-      const blocked = await storage.blockChannel(req.params.userId, channelId);
+      const blocked = await storage.blockChannel(userId, channelId);
       res.json({ blocked });
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
 
-  app.delete("/api/users/:userId/block/:channelId", async (req, res) => {
+  app.delete("/api/users/:userId/block/:channelId", isAuthenticated, async (req: any, res) => {
     try {
-      const unblocked = await storage.unblockChannel(req.params.userId, req.params.channelId);
+      const userId = getUserIdFromRequest(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Users can only unblock channels for themselves
+      if (userId !== req.params.userId) {
+        return res.status(403).json({ message: "Forbidden: Can only unblock channels for your own account" });
+      }
+      
+      const unblocked = await storage.unblockChannel(userId, req.params.channelId);
       res.json({ unblocked });
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -681,7 +727,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Comment routes
   app.post("/api/videos/:videoId/comments", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserIdFromRequest(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const commentData = insertCommentSchema.parse({
         ...req.body,
         userId,
@@ -711,8 +760,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/comments/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const comment = await storage.getComment(req.params.id);
-      if (!comment || comment.userId !== req.user.claims.sub) {
+      if (!comment || comment.userId !== userId) {
         return res.status(403).json({ message: "Forbidden" });
       }
       const updatedComment = await storage.updateComment(req.params.id, req.body);
