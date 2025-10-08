@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings, RotateCw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -140,6 +140,18 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
     setPlaybackRate(rate);
   };
 
+  const skipForward = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = Math.min(video.currentTime + 10, video.duration);
+  };
+
+  const skipBackward = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = Math.max(video.currentTime - 10, 0);
+  };
+
   const formatTime = (seconds: number) => {
     if (isNaN(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
@@ -152,9 +164,9 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
     if (controlsTimeout.current) {
       clearTimeout(controlsTimeout.current);
     }
-    // Hide controls faster on mobile (1.5s) vs desktop (3s)
+    // Hide controls after 2s on mobile, 3s on desktop
     const isMobile = window.innerWidth < 768;
-    const hideDelay = isMobile ? 1500 : 3000;
+    const hideDelay = isMobile ? 2000 : 3000;
     controlsTimeout.current = setTimeout(() => {
       if (isPlaying) {
         setShowControls(false);
@@ -235,6 +247,28 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
               )}
             </Button>
 
+            {/* Skip Backward 10s - Mobile & Desktop */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20 h-10 w-10 sm:h-9 sm:w-9"
+              onClick={skipBackward}
+              title="Rewind 10 seconds"
+            >
+              <RotateCcw className="h-5 w-5" />
+            </Button>
+
+            {/* Skip Forward 10s - Mobile & Desktop */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20 h-10 w-10 sm:h-9 sm:w-9"
+              onClick={skipForward}
+              title="Forward 10 seconds"
+            >
+              <RotateCw className="h-5 w-5" />
+            </Button>
+
             {/* Volume - hide on very small screens */}
             <div className="hidden sm:flex items-center gap-2 group/volume">
               <Button
@@ -261,19 +295,19 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
             </div>
 
             {/* Time */}
-            <span className="text-xs sm:text-sm">
+            <span className="text-xs sm:text-sm whitespace-nowrap">
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
-            {/* Playback Speed */}
+            {/* Playback Speed - Now visible on mobile */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-white hover:bg-white/20 text-xs h-8 px-2 sm:px-3 hidden sm:flex"
+                  className="text-white hover:bg-white/20 text-xs h-8 px-2 sm:px-3"
                 >
                   {playbackRate === 1 ? 'Normal' : `${playbackRate}x`}
                 </Button>
@@ -291,13 +325,13 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Quality Settings */}
+            {/* Quality Settings - Now visible on mobile */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:bg-white/20 h-10 w-10 sm:h-9 sm:w-9 hidden sm:flex"
+                  className="text-white hover:bg-white/20 h-10 w-10 sm:h-9 sm:w-9"
                 >
                   <Settings className="h-5 w-5" />
                 </Button>
