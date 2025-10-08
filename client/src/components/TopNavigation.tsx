@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Search, Menu, Bell, UserCircle, Plus, Video, Radio, FileText } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, Menu, Bell, UserCircle, Plus, Video, Radio, FileText, Clock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -19,9 +19,14 @@ import AccountMenu from "@/components/AccountMenu";
 import Sidebar from "@/components/Sidebar";
 import logoImage from "@/assets/cineweave-logo.svg";
 
+const MAX_SEARCH_HISTORY = 10;
+
 export default function TopNavigation() {
   const [searchQuery, setSearchQuery] = useState("");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [showSearchHistory, setShowSearchHistory] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const searchRef = useRef<HTMLDivElement>(null);
   const { setSearchQuery: setGlobalSearchQuery, sidebarCollapsed, setSidebarCollapsed, mobileSidebarOpen, setMobileSidebarOpen } = useAppStore();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -32,11 +37,56 @@ export default function TopNavigation() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
+  useEffect(() => {
+    const history = localStorage.getItem("searchHistory");
+    if (history) {
+      setSearchHistory(JSON.parse(history));
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchHistory(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const saveToHistory = (query: string) => {
+    if (!query.trim()) return;
+    
+    const updatedHistory = [
+      query,
+      ...searchHistory.filter(item => item !== query)
+    ].slice(0, MAX_SEARCH_HISTORY);
+    
+    setSearchHistory(updatedHistory);
+    localStorage.setItem("searchHistory", JSON.stringify(updatedHistory));
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      saveToHistory(searchQuery.trim());
       setGlobalSearchQuery(searchQuery.trim());
+      setShowSearchHistory(false);
     }
+  };
+
+  const handleHistoryItemClick = (item: string) => {
+    setSearchQuery(item);
+    setGlobalSearchQuery(item);
+    setShowSearchHistory(false);
+  };
+
+  const deleteHistoryItem = (item: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updatedHistory = searchHistory.filter(h => h !== item);
+    setSearchHistory(updatedHistory);
+    localStorage.setItem("searchHistory", JSON.stringify(updatedHistory));
   };
 
   return (
@@ -85,7 +135,7 @@ export default function TopNavigation() {
       </div>
       
       {/* Center Section - Search */}
-      <div className="flex-1 max-w-2xl mx-2 sm:mx-8">
+      <div className="flex-1 max-w-2xl mx-2 sm:mx-8 relative" ref={searchRef}>
         <form onSubmit={handleSearch} className="flex items-center">
           {/* Full search bar - hidden on < sm */}
           <div className="hidden sm:flex flex-1 items-center bg-secondary border border-border rounded-l-full overflow-hidden">
@@ -94,6 +144,7 @@ export default function TopNavigation() {
               placeholder="Search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setShowSearchHistory(true)}
               className="flex-1 bg-transparent px-4 py-2 text-sm text-foreground placeholder-muted-foreground border-0 rounded-none focus-visible:ring-0"
               data-testid="input-search"
             />
@@ -108,15 +159,42 @@ export default function TopNavigation() {
           
           {/* Mobile search icon - shows only on < sm */}
           <Button
-            type="submit"
+            type="button"
             variant="ghost"
             size="icon"
             className="sm:hidden w-10 h-10 hover:bg-muted"
+            onClick={() => setLocation("/search")}
             data-testid="button-search-mobile"
           >
             <Search className="h-5 w-5" />
           </Button>
         </form>
+
+        {/* Desktop Search History Dropdown */}
+        {showSearchHistory && searchHistory.length > 0 && (
+          <div className="hidden sm:block absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+            <div className="p-2">
+              {searchHistory.map((item, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-3 py-2 px-3 hover:bg-muted rounded-md group cursor-pointer"
+                  onClick={() => handleHistoryItemClick(item)}
+                >
+                  <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="flex-1 text-sm">{item}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => deleteHistoryItem(item, e)}
+                    className="w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       
       {/* Right Section */}

@@ -31,6 +31,7 @@ import StudioDashboard from "@/pages/studio/Dashboard";
 import StudioContent from "@/pages/studio/Content";
 import StudioAnalytics from "@/pages/studio/Analytics";
 import StudioSettings from "@/pages/studio/Settings";
+import SearchPage from "@/pages/Search";
 import NotFound from "@/pages/not-found";
 
 // Protected route wrapper
@@ -252,6 +253,9 @@ function Router() {
             <KeyboardShortcuts />
           </Layout>
         )}
+      </Route>
+      <Route path="/search">
+        <SearchPage />
       </Route>
       <Route>
         {() => (
