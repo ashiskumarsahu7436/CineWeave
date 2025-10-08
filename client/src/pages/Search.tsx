@@ -36,6 +36,7 @@ export default function Search() {
     if (query.trim()) {
       saveToHistory(query.trim());
       setGlobalSearchQuery(query.trim());
+      setSearchQuery("");
       setLocation("/");
     }
   };

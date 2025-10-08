@@ -65,10 +65,20 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isMobile = false }: SidebarProps) {
-  const [location] = useLocation();
-  const { sidebarCollapsed } = useAppStore();
+  const [location, setLocation] = useLocation();
+  const { sidebarCollapsed, setSearchQuery, setMobileSidebarOpen } = useAppStore();
 
   const isActive = (path: string) => location === path;
+
+  const handleNavClick = (path: string) => {
+    if (path === "/") {
+      setSearchQuery("");
+    }
+    if (isMobile) {
+      setMobileSidebarOpen(false);
+    }
+    setLocation(path);
+  };
 
   return (
     <aside className={cn(
@@ -86,11 +96,11 @@ export default function Sidebar({ isMobile = false }: SidebarProps) {
             const Icon = item.icon;
             const collapsed = !isMobile && sidebarCollapsed;
             return (
-              <Link
+              <button
                 key={item.path}
-                href={item.path}
+                onClick={() => handleNavClick(item.path)}
                 className={cn(
-                  "nav-item flex items-center py-2.5 text-sm font-medium transition-colors",
+                  "nav-item flex items-center py-2.5 text-sm font-medium transition-colors w-full",
                   collapsed ? "justify-center px-0" : "gap-4 px-4",
                   isActive(item.path)
                     ? "active text-primary bg-muted"
@@ -101,7 +111,7 @@ export default function Sidebar({ isMobile = false }: SidebarProps) {
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
                 {!collapsed && <span>{item.label}</span>}
-              </Link>
+              </button>
             );
           })}
         </div>

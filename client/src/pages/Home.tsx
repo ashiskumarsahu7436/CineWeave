@@ -136,13 +136,23 @@ export default function Home() {
 
       {/* Search Results Header */}
       {searchQuery && (
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-foreground mb-2">
-            Search results for "{searchQuery}"
-          </h2>
-          {videos.length === 0 && (
-            <p className="text-muted-foreground">No videos found matching your search.</p>
-          )}
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-foreground mb-2">
+              Search results for "{searchQuery}"
+            </h2>
+            {videos.length === 0 && (
+              <p className="text-muted-foreground">No videos found matching your search.</p>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => useAppStore.getState().setSearchQuery("")}
+            className="text-sm"
+          >
+            Clear search
+          </Button>
         </div>
       )}
 
