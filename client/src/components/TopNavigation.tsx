@@ -17,7 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import AccountMenu from "@/components/AccountMenu";
 import Sidebar from "@/components/Sidebar";
-import logoImage from "@/assets/cineweave-logo.svg";
+import logoImage from "@/assets/cineweave-logo.png";
 
 const MAX_SEARCH_HISTORY = 10;
 
