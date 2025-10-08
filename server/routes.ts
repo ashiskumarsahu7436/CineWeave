@@ -33,7 +33,7 @@ const upload = multer({
     
     if (file.fieldname === 'video' && allowedVideoTypes.includes(file.mimetype)) {
       cb(null, true);
-    } else if (file.fieldname === 'thumbnail' && allowedImageTypes.includes(file.mimetype)) {
+    } else if ((file.fieldname === 'thumbnail' || file.fieldname === 'avatar') && allowedImageTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error(`Invalid file type for ${file.fieldname}`));
@@ -313,11 +313,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/videos", async (req, res) => {
     try {
       const { limit, category } = req.query;
-      const videos = await storage.getVideos(
+      const userId = getUserIdFromRequest(req);
+      
+      const allVideos = await storage.getVideos(
         limit ? parseInt(limit as string) : undefined,
         category as string
       );
-      res.json(videos);
+      
+      // Filter based on visibility:
+      // - Public videos: visible to everyone
+      // - Unlisted videos: visible to everyone (but not in search/recommendations)
+      // - Private videos: only visible to the owner
+      const filteredVideos = allVideos.filter((video: any) => {
+        const visibility = video.visibility || 'public';
+        if (visibility === 'public' || visibility === 'unlisted') {
+          return true;
+        }
+        if (visibility === 'private') {
+          return userId && video.channel?.userId === userId;
+        }
+        return false;
+      });
+      
+      res.json(filteredVideos);
     } catch (error) {
       console.error("Error in GET /api/videos:", error);
       res.status(500).json({ message: "Internal server error" });
@@ -330,8 +348,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!q) {
         return res.status(400).json({ message: "Search query required" });
       }
-      const videos = await storage.searchVideos(q as string);
-      res.json(videos);
+      const userId = getUserIdFromRequest(req);
+      const allVideos = await storage.searchVideos(q as string);
+      
+      // Filter search results:
+      // - Public videos: visible to everyone
+      // - Private videos: only visible to owner
+      // - Unlisted videos: NOT shown in search (even to owner)
+      const filteredVideos = allVideos.filter((video: any) => {
+        const visibility = video.visibility || 'public';
+        if (visibility === 'public') {
+          return true;
+        }
+        if (visibility === 'private') {
+          // Show private videos to the owner
+          return userId && video.channel?.userId === userId;
+        }
+        // Unlisted videos are never shown in search
+        return false;
+      });
+      
+      res.json(filteredVideos);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
@@ -343,9 +380,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!channelIds) {
         return res.status(400).json({ message: "Channel IDs required" });
       }
+      const userId = getUserIdFromRequest(req);
       const ids = (channelIds as string).split(',');
-      const videos = await storage.getVideosByChannels(ids);
-      res.json(videos);
+      const allVideos = await storage.getVideosByChannels(ids);
+      
+      // Filter based on visibility
+      const filteredVideos = allVideos.filter((video: any) => {
+        const visibility = video.visibility || 'public';
+        if (visibility === 'public' || visibility === 'unlisted') {
+          return true;
+        }
+        if (visibility === 'private') {
+          return userId && video.channel?.userId === userId;
+        }
+        return false;
+      });
+      
+      res.json(filteredVideos);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
@@ -353,14 +404,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/videos/:id", async (req, res) => {
     try {
+      const userId = getUserIdFromRequest(req);
       const video = await storage.getVideo(req.params.id);
+      
       if (!video) {
         return res.status(404).json({ message: "Video not found" });
       }
+      
       const channel = await storage.getChannel(video.channelId);
       if (!channel) {
         return res.status(404).json({ message: "Channel not found" });
       }
+      
+      // Check if user has permission to view this video
+      const visibility = video.visibility || 'public';
+      if (visibility === 'private') {
+        // Only the owner can view private videos
+        if (!userId || channel.userId !== userId) {
+          return res.status(403).json({ message: "This video is private" });
+        }
+      }
+      // Public and unlisted videos are accessible to everyone
+      
       res.json({ ...video, channel });
     } catch (error) {
       console.error("Error in GET /api/videos/:id:", error);
@@ -560,6 +625,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Channel avatar/logo upload
+  app.post("/api/upload/avatar", (req, res, next) => {
+    upload.single('avatar')(req, res, (err) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({ 
+            message: `Avatar too large. Maximum upload size is 10MB.`
+          });
+        }
+        return res.status(400).json({ message: err.message });
+      }
+      next();
+    });
+  }, async (req: any, res) => {
+    try {
+      // Check storage configuration
+      if (!isStorageConfigured()) {
+        return res.status(503).json({ 
+          message: "Storage not configured",
+          configured: false
+        });
+      }
+
+      const userId = getUserIdFromRequest(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No avatar file provided" });
+      }
+
+      console.log(`Uploading avatar: ${req.file.originalname}`);
+
+      // Upload to iDrive E2 (reuse thumbnail storage for avatars)
+      const avatarUrl = await uploadThumbnailToStorage(
+        req.file.buffer,
+        `avatar-${req.file.originalname}`,
+        req.file.mimetype
+      );
+
+      res.json({
+        message: "Avatar uploaded successfully",
+        avatarUrl
+      });
+    } catch (error: any) {
+      console.error("Error uploading avatar:", error);
+      res.status(500).json({ message: "Failed to upload avatar: " + error.message });
+    }
+  });
+
   // Check storage configuration status
   app.get("/api/storage/status", async (req, res) => {
     res.json({
@@ -642,6 +758,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid video data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to upload video" });
+    }
+  });
+
+  // Update video (edit details)
+  app.patch("/api/videos/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Get video and verify ownership
+      const video = await storage.getVideo(req.params.id);
+      if (!video) {
+        return res.status(404).json({ message: "Video not found" });
+      }
+
+      const channel = await storage.getChannel(video.channelId);
+      if (!channel || channel.userId !== userId) {
+        return res.status(403).json({ message: "You can only edit your own videos" });
+      }
+
+      // Update video
+      const { title, description, category, thumbnail, visibility } = req.body;
+      const updates: Partial<typeof video> = {};
+      
+      if (title !== undefined) updates.title = title;
+      if (description !== undefined) updates.description = description;
+      if (category !== undefined) updates.category = category;
+      if (thumbnail !== undefined) updates.thumbnail = thumbnail;
+      if (visibility !== undefined) updates.visibility = visibility;
+
+      const updatedVideo = await storage.updateVideo(req.params.id, updates);
+      res.json({ message: "Video updated successfully", video: updatedVideo });
+    } catch (error: any) {
+      console.error("Error updating video:", error);
+      res.status(500).json({ message: "Failed to update video" });
+    }
+  });
+
+  // Delete video
+  app.delete("/api/videos/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Get video and verify ownership
+      const video = await storage.getVideo(req.params.id);
+      if (!video) {
+        return res.status(404).json({ message: "Video not found" });
+      }
+
+      const channel = await storage.getChannel(video.channelId);
+      if (!channel || channel.userId !== userId) {
+        return res.status(403).json({ message: "You can only delete your own videos" });
+      }
+
+      // Delete video
+      const deleted = await storage.deleteVideo(req.params.id);
+      if (!deleted) {
+        return res.status(500).json({ message: "Failed to delete video" });
+      }
+
+      res.json({ message: "Video deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting video:", error);
+      res.status(500).json({ message: "Failed to delete video" });
     }
   });
 

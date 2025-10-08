@@ -150,13 +150,54 @@ export default function StudioSettings() {
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 space-y-2">
-                <Input
-                  placeholder="Profile picture URL"
-                  value={avatar}
-                  onChange={(e) => setAvatar(e.target.value)}
-                />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('avatar-upload')?.click()}
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    Upload Image
+                  </Button>
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+
+                      const formData = new FormData();
+                      formData.append('avatar', file);
+
+                      try {
+                        const response = await fetch('/api/upload/avatar', {
+                          method: 'POST',
+                          body: formData,
+                          credentials: 'include'
+                        });
+
+                        if (!response.ok) throw new Error('Failed to upload avatar');
+
+                        const data = await response.json();
+                        setAvatar(data.avatarUrl);
+                        toast({
+                          title: "Success!",
+                          description: "Avatar uploaded successfully"
+                        });
+                      } catch (error: any) {
+                        toast({
+                          title: "Error",
+                          description: error.message || "Failed to upload avatar",
+                          variant: "destructive"
+                        });
+                      }
+                    }}
+                  />
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  Enter a URL for your profile picture (e.g., from Unsplash or your own hosting)
+                  Upload a profile picture for your channel (JPG, PNG, or WebP)
                 </p>
               </div>
             </div>

@@ -56,6 +56,7 @@ export const videos = pgTable("videos", {
   isShorts: boolean("is_shorts").default(false),
   description: text("description"),
   category: text("category"),
+  visibility: text("visibility").default("public"),
 });
 
 export const spaces = pgTable("spaces", {

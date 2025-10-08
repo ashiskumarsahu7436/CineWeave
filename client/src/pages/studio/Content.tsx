@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,14 +20,32 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Search, Upload, MoreVertical, Eye, MessageSquare, ThumbsUp, Video } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Search, Upload, MoreVertical, Eye, MessageSquare, ThumbsUp, Video, Pencil, Trash2 } from "lucide-react";
 import { useLocation } from "wouter";
 import UploadVideoDialog from "@/components/UploadVideoDialog";
+import EditVideoDialog from "@/components/EditVideoDialog";
 
 export default function StudioContent() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [editVideoDialogOpen, setEditVideoDialogOpen] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<any>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [videoToDelete, setVideoToDelete] = useState<any>(null);
   const [location, setLocation] = useLocation();
 
   useEffect(() => {
@@ -57,6 +76,66 @@ export default function StudioContent() {
   });
 
   const channelVideos = videos.filter((v: any) => v.channelId === channel?.id);
+
+  const deleteVideoMutation = useMutation({
+    mutationFn: async (videoId: string) => {
+      const response = await fetch(`/api/videos/${videoId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to delete video");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/videos"] });
+      toast({
+        title: "Success!",
+        description: "Video deleted successfully",
+      });
+      setDeleteDialogOpen(false);
+      setVideoToDelete(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete video",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEditVideo = (video: any) => {
+    setSelectedVideo(video);
+    setEditVideoDialogOpen(true);
+  };
+
+  const handleDeleteClick = (video: any) => {
+    setVideoToDelete(video);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (videoToDelete) {
+      deleteVideoMutation.mutate(videoToDelete.id);
+    }
+  };
+
+  const getVisibilityBadge = (visibility: string) => {
+    switch (visibility?.toLowerCase()) {
+      case "private":
+        return <Badge variant="secondary">Private</Badge>;
+      case "unlisted":
+        return <Badge variant="outline">Unlisted</Badge>;
+      case "public":
+      default:
+        return <Badge variant="default">Public</Badge>;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -132,7 +211,7 @@ export default function StudioContent() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary">Public</Badge>
+                            {getVisibilityBadge(video.visibility || "public")}
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {new Date(video.createdAt).toLocaleDateString()}
@@ -150,10 +229,19 @@ export default function StudioContent() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEditVideo(video)}>
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Edit video
+                                </DropdownMenuItem>
                                 <DropdownMenuItem>View analytics</DropdownMenuItem>
-                                <DropdownMenuItem>Edit video</DropdownMenuItem>
-                                <DropdownMenuItem>Download</DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="text-destructive" 
+                                  onClick={() => handleDeleteClick(video)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -234,6 +322,34 @@ export default function StudioContent() {
         open={uploadDialogOpen} 
         onOpenChange={setUploadDialogOpen} 
       />
+
+      {selectedVideo && (
+        <EditVideoDialog
+          video={selectedVideo}
+          open={editVideoDialogOpen}
+          onOpenChange={setEditVideoDialogOpen}
+        />
+      )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Video</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{videoToDelete?.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteVideoMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
