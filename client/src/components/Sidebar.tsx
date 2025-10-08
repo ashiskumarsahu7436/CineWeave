@@ -60,7 +60,11 @@ const toolsItems = [
   { icon: MessageSquare, label: "Send feedback", path: "/feedback" },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isMobile?: boolean;
+}
+
+export default function Sidebar({ isMobile = false }: SidebarProps) {
   const [location] = useLocation();
   const { sidebarCollapsed } = useAppStore();
 
@@ -68,8 +72,11 @@ export default function Sidebar() {
 
   return (
     <aside className={cn(
-      "hidden md:fixed md:left-0 md:top-14 md:bottom-0 md:block bg-background border-r border-border overflow-y-auto sidebar-scrollbar z-40 transition-all duration-300",
-      sidebarCollapsed ? "w-20" : "w-60"
+      "bg-background border-r border-border overflow-y-auto sidebar-scrollbar z-40 transition-all duration-300",
+      isMobile 
+        ? "w-full" 
+        : "hidden md:fixed md:left-0 md:top-14 md:bottom-0 md:block",
+      !isMobile && (sidebarCollapsed ? "w-20" : "w-60")
     )}>
       <div className="py-2">
         
@@ -77,22 +84,23 @@ export default function Sidebar() {
         <div className="py-2 border-b border-border">
           {mainNavItems.map((item) => {
             const Icon = item.icon;
+            const collapsed = !isMobile && sidebarCollapsed;
             return (
               <Link
                 key={item.path}
                 href={item.path}
                 className={cn(
                   "nav-item flex items-center py-2.5 text-sm font-medium transition-colors",
-                  sidebarCollapsed ? "justify-center px-0" : "gap-4 px-4",
+                  collapsed ? "justify-center px-0" : "gap-4 px-4",
                   isActive(item.path)
                     ? "active text-primary bg-muted"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
                 data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                title={sidebarCollapsed ? item.label : undefined}
+                title={collapsed ? item.label : undefined}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
-                {!sidebarCollapsed && <span>{item.label}</span>}
+                {!collapsed && <span>{item.label}</span>}
               </Link>
             );
           })}
@@ -102,22 +110,23 @@ export default function Sidebar() {
         <div className="py-2 border-b border-border">
           {libraryItems.map((item) => {
             const Icon = item.icon;
+            const collapsed = !isMobile && sidebarCollapsed;
             return (
               <Link
                 key={item.path}
                 href={item.path}
                 className={cn(
                   "nav-item flex items-center py-2.5 text-sm font-medium transition-colors",
-                  sidebarCollapsed ? "justify-center px-0" : "gap-4 px-4",
+                  collapsed ? "justify-center px-0" : "gap-4 px-4",
                   isActive(item.path)
                     ? "active text-primary bg-muted"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
                 data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                title={sidebarCollapsed ? item.label : undefined}
+                title={collapsed ? item.label : undefined}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
-                {!sidebarCollapsed && <span>{item.label}</span>}
+                {!collapsed && <span>{item.label}</span>}
               </Link>
             );
           })}
@@ -125,29 +134,30 @@ export default function Sidebar() {
         
         {/* Explore Section */}
         <div className="py-2 border-b border-border">
-          {!sidebarCollapsed && (
+          {(isMobile || !sidebarCollapsed) && (
             <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Explore
             </div>
           )}
           {exploreItems.map((item) => {
             const Icon = item.icon;
+            const collapsed = !isMobile && sidebarCollapsed;
             return (
               <Link
                 key={item.path}
                 href={item.path}
                 className={cn(
                   "nav-item flex items-center py-2.5 text-sm font-medium transition-colors",
-                  sidebarCollapsed ? "justify-center px-0" : "gap-4 px-4",
+                  collapsed ? "justify-center px-0" : "gap-4 px-4",
                   isActive(item.path)
                     ? "active text-primary bg-muted"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
                 data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                title={sidebarCollapsed ? item.label : undefined}
+                title={collapsed ? item.label : undefined}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
-                {!sidebarCollapsed && <span>{item.label}</span>}
+                {!collapsed && <span>{item.label}</span>}
               </Link>
             );
           })}
@@ -157,29 +167,30 @@ export default function Sidebar() {
         <div className="py-2 border-b border-border">
           {toolsItems.map((item) => {
             const Icon = item.icon;
+            const collapsed = !isMobile && sidebarCollapsed;
             return (
               <Link
                 key={item.path}
                 href={item.path}
                 className={cn(
                   "nav-item flex items-center py-2.5 text-sm font-medium transition-colors",
-                  sidebarCollapsed ? "justify-center px-0" : "gap-4 px-4",
+                  collapsed ? "justify-center px-0" : "gap-4 px-4",
                   isActive(item.path)
                     ? "active text-primary bg-muted"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
                 data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                title={sidebarCollapsed ? item.label : undefined}
+                title={collapsed ? item.label : undefined}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
-                {!sidebarCollapsed && <span>{item.label}</span>}
+                {!collapsed && <span>{item.label}</span>}
               </Link>
             );
           })}
         </div>
         
         {/* Footer Links */}
-        {!sidebarCollapsed && (
+        {(isMobile || !sidebarCollapsed) && (
           <div className="px-4 py-4">
             <div className="text-xs text-muted-foreground space-y-1">
               <div className="flex flex-wrap gap-x-2">

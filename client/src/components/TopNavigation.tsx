@@ -62,7 +62,7 @@ export default function TopNavigation() {
               </SheetHeader>
             </VisuallyHidden>
             <div className="pt-2">
-              <Sidebar />
+              <Sidebar isMobile={true} />
             </div>
           </SheetContent>
         </Sheet>
