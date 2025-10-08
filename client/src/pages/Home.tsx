@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Play } from "lucide-react";
 import VideoCard from "@/components/VideoCard";
 import SpaceCard from "@/components/SpaceCard";
+import ShortsCard from "@/components/ShortsCard";
 import ChannelCreationDialog from "@/components/ChannelCreationDialog";
 import { useAppStore } from "@/store/useAppStore";
 import { useAuth } from "@/hooks/useAuth";
@@ -76,8 +77,23 @@ export default function Home() {
     enabled: !!user?.id,
   });
 
+  // Fetch shorts for homepage integration
+  const { data: shorts = [] } = useQuery<VideoWithChannel[]>({
+    queryKey: ["/api/videos/shorts"],
+    queryFn: async () => {
+      const response = await fetch('/api/videos/shorts');
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !searchQuery,
+  });
+
   const handleVideoClick = (video: VideoWithChannel) => {
     setLocation(`/watch/${video.id}`);
+  };
+
+  const handleShortClick = (shortId: string, index: number) => {
+    setLocation(`/shorts`);
   };
 
   const handleSpaceClick = (space: SpaceWithChannels) => {
@@ -176,6 +192,36 @@ export default function Home() {
               onClick={() => handleVideoClick(video)}
             />
           ))}
+        </div>
+      )}
+
+      {/* Shorts Section - Horizontal scrollable */}
+      {shorts.length > 0 && !searchQuery && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+              <Play className="h-6 w-6 text-primary" />
+              Shorts
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary hover:underline"
+              onClick={() => setLocation("/shorts")}
+            >
+              View all →
+            </Button>
+          </div>
+
+          <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
+            {shorts.slice(0, 10).map((short) => (
+              <ShortsCard
+                key={short.id}
+                short={short}
+                onClick={() => handleShortClick(short.id, 0)}
+              />
+            ))}
+          </div>
         </div>
       )}
 

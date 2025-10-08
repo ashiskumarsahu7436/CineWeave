@@ -32,7 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Upload, MoreVertical, Eye, MessageSquare, ThumbsUp, Video, Pencil, Trash2 } from "lucide-react";
+import { Search, Upload, MoreVertical, Eye, MessageSquare, ThumbsUp, Video, Pencil, Trash2, Play } from "lucide-react";
 import { useLocation } from "wouter";
 import UploadVideoDialog from "@/components/UploadVideoDialog";
 import EditVideoDialog from "@/components/EditVideoDialog";
@@ -76,6 +76,8 @@ export default function StudioContent() {
   });
 
   const channelVideos = videos.filter((v: any) => v.channelId === channel?.id);
+  const channelShorts = channelVideos.filter((v: any) => v.isShorts === true);
+  const channelLongVideos = channelVideos.filter((v: any) => !v.isShorts);
 
   const deleteVideoMutation = useMutation({
     mutationFn: async (videoId: string) => {
@@ -171,7 +173,7 @@ export default function StudioContent() {
             <Button variant="outline">Filter</Button>
           </div>
 
-          {channelVideos.length > 0 ? (
+          {channelLongVideos.length > 0 ? (
             <Card>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
@@ -188,7 +190,7 @@ export default function StudioContent() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {channelVideos.map((video: any) => (
+                      {channelLongVideos.map((video: any) => (
                         <TableRow key={video.id}>
                           <TableCell>
                             <div className="flex items-center gap-3">
@@ -203,7 +205,15 @@ export default function StudioContent() {
                                 </div>
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="font-medium line-clamp-2 text-sm">{video.title}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium line-clamp-2 text-sm">{video.title}</p>
+                                  {video.isShorts && (
+                                    <Badge variant="secondary" className="flex items-center gap-1 bg-primary/10 text-primary shrink-0">
+                                      <Play className="h-3 w-3" />
+                                      Short
+                                    </Badge>
+                                  )}
+                                </div>
                                 <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                                   {video.description || 'No description'}
                                 </p>
@@ -269,16 +279,117 @@ export default function StudioContent() {
           )}
         </TabsContent>
 
-        <TabsContent value="shorts">
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <Video className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Shorts yet</h3>
-              <p className="text-muted-foreground mb-6 text-center max-w-md">
-                Create short-form vertical videos to reach a wider audience
-              </p>
-            </CardContent>
-          </Card>
+        <TabsContent value="shorts" className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div className="relative w-full sm:flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search across your shorts"
+                className="pl-10"
+              />
+            </div>
+            <Button variant="outline">Filter</Button>
+          </div>
+
+          {channelShorts.length > 0 ? (
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Short</TableHead>
+                        <TableHead>Visibility</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead className="text-right">Views</TableHead>
+                        <TableHead className="text-right">Comments</TableHead>
+                        <TableHead className="text-right">Likes</TableHead>
+                        <TableHead></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {channelShorts.map((video: any) => (
+                        <TableRow key={video.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="relative w-14 h-24 bg-muted rounded overflow-hidden flex-shrink-0">
+                                <img
+                                  src={video.thumbnail}
+                                  alt={video.title}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1 rounded">
+                                  {video.duration}
+                                </div>
+                                <Badge variant="secondary" className="absolute top-1 left-1 text-xs px-1 py-0 bg-primary/90 text-white">
+                                  <Play className="h-2 w-2" />
+                                </Badge>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium line-clamp-2 text-sm">{video.title}</p>
+                                <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                                  {video.description || 'No description'}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {getVisibilityBadge(video.visibility || "public")}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(video.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="text-right">{video.views || 0}</TableCell>
+                          <TableCell className="text-right">0</TableCell>
+                          <TableCell className="text-right">
+                            {video.likes || 0} ({video.dislikes ? `${(video.likes / (video.likes + video.dislikes) * 100).toFixed(1)}%` : '0%'})
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEditVideo(video)}>
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Edit short
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>View analytics</DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="text-destructive" 
+                                  onClick={() => handleDeleteClick(video)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16">
+                <Video className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Shorts yet</h3>
+                <p className="text-muted-foreground mb-6 text-center max-w-md">
+                  Create short-form vertical videos (under 60 seconds) to reach a wider audience
+                </p>
+                <Button className="gap-2" onClick={() => setUploadDialogOpen(true)}>
+                  <Upload className="h-4 w-4" />
+                  Upload short
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="live">

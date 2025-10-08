@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, Video, X, ChevronRight, ChevronLeft, Check, AlertCircle, PlayCircle, Film, Tag } from "lucide-react";
+import { Upload, Video, X, ChevronRight, ChevronLeft, Check, AlertCircle, PlayCircle, Film, Tag, Play } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -74,6 +74,7 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
   const [selectedPlaylist, setSelectedPlaylist] = useState("");
   const [audienceType, setAudienceType] = useState("no");
   const [videoDuration, setVideoDuration] = useState<string>("");
+  const [isShortVideo, setIsShortVideo] = useState(false);
   
   // Visibility settings
   const [visibility, setVisibility] = useState<"private" | "unlisted" | "public">("private");
@@ -173,6 +174,11 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
     // Extract duration
     const duration = await extractVideoDuration(file);
     setVideoDuration(duration);
+    
+    // Check if it's a short video (< 60 seconds)
+    const [minutes, seconds] = duration.split(':').map(Number);
+    const totalSeconds = minutes * 60 + seconds;
+    setIsShortVideo(totalSeconds <= 60);
     
     // Simulate processing
     setTimeout(() => {
@@ -314,6 +320,7 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
           videoUrl: videoResult.videoUrl,
           storageKey: videoResult.storageKey,
           duration: videoDuration,
+          isShorts: isShortVideo,
           category: selectedCategory || undefined,
           tags: tags.length > 0 ? tags : undefined,
           visibility,
@@ -519,7 +526,15 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                   </div>
                 ) : currentStep === "details" ? (
                   <div className="space-y-4 sm:space-y-6 max-w-2xl">
-                    <h2 className="text-xl sm:text-2xl font-bold">Details</h2>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl sm:text-2xl font-bold">Details</h2>
+                      {isShortVideo && (
+                        <Badge variant="secondary" className="flex items-center gap-1 bg-primary/10 text-primary hover:bg-primary/20">
+                          <Play className="h-3 w-3" />
+                          Short Video
+                        </Badge>
+                      )}
+                    </div>
                     
                     <div className="space-y-3 sm:space-y-4">
                       <div className="space-y-2">

@@ -21,6 +21,7 @@ export interface IStorage {
   // Video methods
   getVideo(id: string): Promise<Video | undefined>;
   getVideos(limit?: number, category?: string): Promise<VideoWithChannel[]>;
+  getShorts(): Promise<VideoWithChannel[]>;
   getVideosByChannel(channelId: string): Promise<VideoWithChannel[]>;
   getVideosByChannels(channelIds: string[]): Promise<VideoWithChannel[]>;
   createVideo(video: InsertVideo): Promise<Video>;
@@ -213,6 +214,21 @@ export class MemStorage implements IStorage {
     }));
   }
 
+  async getShorts(): Promise<VideoWithChannel[]> {
+    const shorts = Array.from(this.videos.values())
+      .filter(video => video.isShorts === true)
+      .sort((a, b) => {
+        const dateA = a.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
+        const dateB = b.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
+        return dateB - dateA;
+      });
+
+    return shorts.map(video => ({
+      ...video,
+      channel: this.channels.get(video.channelId)!
+    }));
+  }
+
   async getVideosByChannel(channelId: string): Promise<VideoWithChannel[]> {
     const videos = Array.from(this.videos.values()).filter(video => video.channelId === channelId);
     return videos.map(video => ({
@@ -240,7 +256,8 @@ export class MemStorage implements IStorage {
       isShorts: insertVideo.isShorts ?? false,
       description: insertVideo.description ?? null,
       category: insertVideo.category ?? null,
-      storageKey: insertVideo.storageKey ?? null
+      storageKey: insertVideo.storageKey ?? null,
+      visibility: insertVideo.visibility ?? "public"
     };
     this.videos.set(id, video);
     return video;
@@ -704,6 +721,20 @@ export class DbStorage implements IStorage {
     }
 
     const results = await query;
+    return results.map(r => ({ ...r.video, channel: r.channel }));
+  }
+
+  async getShorts(): Promise<VideoWithChannel[]> {
+    const results = await db
+      .select({
+        video: videos,
+        channel: channels,
+      })
+      .from(videos)
+      .innerJoin(channels, eq(videos.channelId, channels.id))
+      .where(eq(videos.isShorts, true))
+      .orderBy(sql`${videos.uploadedAt} DESC`);
+
     return results.map(r => ({ ...r.video, channel: r.channel }));
   }
 

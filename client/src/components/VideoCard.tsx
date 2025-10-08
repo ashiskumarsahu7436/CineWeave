@@ -1,19 +1,11 @@
 import { MoreVertical, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VideoWithChannel } from "@shared/schema";
+import { formatViews } from "@/lib/utils";
 
 interface VideoCardProps {
   video: VideoWithChannel;
   onClick?: () => void;
-}
-
-function formatViews(views: number): string {
-  if (views >= 1000000) {
-    return `${(views / 1000000).toFixed(1)}M`;
-  } else if (views >= 1000) {
-    return `${(views / 1000).toFixed(1)}K`;
-  }
-  return views.toString();
 }
 
 function formatTimeAgo(date: Date | string | null): string {

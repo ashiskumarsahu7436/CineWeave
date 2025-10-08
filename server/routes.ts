@@ -342,6 +342,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get shorts videos only
+  app.get("/api/videos/shorts", async (req, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      const allShorts = await storage.getShorts();
+      
+      // Filter based on visibility
+      const filteredShorts = allShorts.filter((video: any) => {
+        const visibility = video.visibility || 'public';
+        if (visibility === 'public' || visibility === 'unlisted') {
+          return true;
+        }
+        if (visibility === 'private') {
+          return userId && video.channel?.userId === userId;
+        }
+        return false;
+      });
+      
+      res.json(filteredShorts);
+    } catch (error) {
+      console.error("Error in GET /api/videos/shorts:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.get("/api/videos/search", async (req, res) => {
     try {
       const { q } = req.query;
