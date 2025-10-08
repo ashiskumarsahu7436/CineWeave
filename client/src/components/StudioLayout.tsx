@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAppStore } from "@/store/useAppStore";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import studioLogoImage from "@/assets/cineweave-studio-logo.png";
 
 const studioNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/studio" },
@@ -95,9 +96,7 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
 
           <Link href="/">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">CW</span>
-              </div>
+              <img src={studioLogoImage} alt="CineWeave Studio Logo" className="h-8 w-8 object-contain" />
               <span className="font-semibold text-base md:text-lg">CineWeave Studio</span>
             </div>
           </Link>
