@@ -96,7 +96,7 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
 
           <Link href="/">
             <div className="flex items-center gap-2">
-              <img src={studioLogoImage} alt="CineWeave Studio Logo" className="h-8 w-8 object-contain" />
+              <img src={studioLogoImage} alt="CineWeave Studio Logo" className="h-10 w-10 sm:h-12 sm:w-12 object-contain" />
               <span className="font-semibold text-base md:text-lg">CineWeave Studio</span>
             </div>
           </Link>
