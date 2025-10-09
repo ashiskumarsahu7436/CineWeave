@@ -31,7 +31,7 @@ interface ShortsPlayerProps {
 
 export default function ShortsPlayer({ videos, initialIndex = 0, onClose }: ShortsPlayerProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const [showControls, setShowControls] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
