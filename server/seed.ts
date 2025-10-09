@@ -45,6 +45,7 @@ async function seed() {
 
   const sampleChannels = [
     {
+      userId: createdUsers[0].id,
       name: "A Gamingcraft",
       username: "@agamingcraft",
       avatar: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&h=80&fit=crop",
@@ -53,6 +54,7 @@ async function seed() {
       description: "Epic gaming adventures and walkthroughs",
     },
     {
+      userId: createdUsers[1].id,
       name: "A Filmcraft",
       username: "@afilmcraft",
       avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop",
@@ -61,6 +63,7 @@ async function seed() {
       description: "Film analysis and cinematic storytelling",
     },
     {
+      userId: createdUsers[2].id,
       name: "Tech Vision",
       username: "@techvision",
       avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop",
@@ -69,6 +72,7 @@ async function seed() {
       description: "Technology reviews and tutorials",
     },
     {
+      userId: createdUsers[0].id,
       name: "Cooking Masters",
       username: "@cookingmasters",
       avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop",
@@ -77,6 +81,7 @@ async function seed() {
       description: "Professional cooking tutorials and recipes",
     },
     {
+      userId: createdUsers[1].id,
       name: "Nature Explorer",
       username: "@natureexplorer",
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop",
@@ -85,6 +90,7 @@ async function seed() {
       description: "Wildlife documentaries and nature exploration",
     },
     {
+      userId: createdUsers[2].id,
       name: "Fitness Pro",
       username: "@fitnesspro",
       avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&h=80&fit=crop",
@@ -93,6 +99,7 @@ async function seed() {
       description: "Workout routines and fitness tips",
     },
     {
+      userId: createdUsers[0].id,
       name: "Music Vibes",
       username: "@musicvibes",
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop",
@@ -101,6 +108,7 @@ async function seed() {
       description: "Latest music videos and live performances",
     },
     {
+      userId: createdUsers[1].id,
       name: "Science Daily",
       username: "@sciencedaily",
       avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&h=80&fit=crop",
@@ -109,6 +117,7 @@ async function seed() {
       description: "Science experiments and educational content",
     },
     {
+      userId: createdUsers[2].id,
       name: "Travel World",
       username: "@travelworld",
       avatar: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=80&h=80&fit=crop",
@@ -117,6 +126,7 @@ async function seed() {
       description: "Travel vlogs from around the world",
     },
     {
+      userId: createdUsers[0].id,
       name: "Comedy Central",
       username: "@comedycentral",
       avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=80&h=80&fit=crop",
