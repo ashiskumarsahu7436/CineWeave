@@ -13,7 +13,9 @@ import {
   ChevronDown,
   CheckCircle,
   Repeat2,
-  X
+  X,
+  Play,
+  Pause
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VideoWithChannel } from "@shared/schema";
@@ -31,14 +33,33 @@ export default function ShortsPlayer({ videos, initialIndex = 0, onClose }: Shor
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [showControls, setShowControls] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout>();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   const currentVideo = videos[currentIndex];
+
+  // Auto-hide controls after 3 seconds
+  useEffect(() => {
+    if (showControls) {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 3000);
+    }
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, [showControls]);
 
   // Handle video playback
   useEffect(() => {
@@ -109,7 +130,7 @@ export default function ShortsPlayer({ videos, initialIndex = 0, onClose }: Shor
     },
     onError: () => {
       toast({
-        title: "Error",
+        title: "Sign in required",
         description: "Please sign in to react to videos",
         variant: "destructive",
       });
@@ -136,7 +157,7 @@ export default function ShortsPlayer({ videos, initialIndex = 0, onClose }: Shor
     },
     onError: () => {
       toast({
-        title: "Error",
+        title: "Sign in required",
         description: "Please sign in to subscribe",
         variant: "destructive",
       });
@@ -185,10 +206,12 @@ export default function ShortsPlayer({ videos, initialIndex = 0, onClose }: Shor
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
+    setShowControls(true);
   };
 
   const togglePlayPause = () => {
     setIsPlaying(!isPlaying);
+    setShowControls(true);
   };
 
   const handleShare = async () => {
@@ -266,7 +289,7 @@ export default function ShortsPlayer({ videos, initialIndex = 0, onClose }: Shor
 
   if (!currentVideo) {
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
+      <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
         <p className="text-white">No shorts available</p>
       </div>
     );
@@ -278,70 +301,85 @@ export default function ShortsPlayer({ videos, initialIndex = 0, onClose }: Shor
       className="fixed inset-0 bg-black z-50 flex items-center justify-center"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      onClick={() => setShowControls(true)}
     >
       {/* Video Player */}
       <div className="relative w-full max-w-[500px] h-full flex items-center justify-center">
         <video
           ref={videoRef}
           src={currentVideo.videoUrl}
-          className="w-full h-full object-contain"
+          className="w-full h-full object-contain bg-black"
           loop
           muted={isMuted}
           playsInline
           onClick={togglePlayPause}
         />
 
+        {/* Play/Pause overlay */}
+        {!isPlaying && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="bg-white/20 backdrop-blur-md rounded-full p-6">
+              <Play className="h-16 w-16 text-white fill-white" />
+            </div>
+          </div>
+        )}
+
         {/* Gradient overlays */}
-        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
-        <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none" />
+        <div className={`absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/70 to-transparent transition-opacity ${showControls ? 'opacity-100' : 'opacity-0'}`} />
+        <div className="absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-black/95 via-black/60 to-transparent" />
 
         {/* Top controls */}
-        <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
-          <div className="text-white font-semibold text-lg">Shorts</div>
+        <div className={`absolute top-0 left-0 right-0 p-4 sm:p-6 flex items-center justify-between z-20 transition-opacity ${showControls ? 'opacity-100' : 'opacity-0'}`}>
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-br from-red-500 to-pink-600 p-2 rounded-lg">
+              <Play className="h-5 w-5 text-white fill-white" />
+            </div>
+            <span className="text-white font-semibold text-lg hidden sm:block">Shorts</span>
+          </div>
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
-              className="text-white hover:bg-white/20"
+              className="text-white hover:bg-white/20 h-10 w-10"
               onClick={toggleMute}
             >
-              {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+              {isMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
             </Button>
             {onClose && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white hover:bg-white/20"
+                className="text-white hover:bg-white/20 h-10 w-10"
                 onClick={onClose}
               >
-                <X className="h-5 w-5" />
+                <X className="h-6 w-6" />
               </Button>
             )}
           </div>
         </div>
 
         {/* Bottom info & controls */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 pb-6">
-          <div className="flex items-end gap-3">
-            {/* Video info */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 pb-6 sm:pb-8 z-20">
+          <div className="flex items-end gap-3 sm:gap-4">
+            {/* Video info - Mobile & Desktop optimized */}
             <div className="flex-1 text-white space-y-3">
               <div 
-                className="flex items-center gap-3 cursor-pointer"
+                className="flex items-center gap-3 cursor-pointer group"
                 onClick={goToChannel}
               >
                 <img
                   src={currentVideo.channel.avatar || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&h=80&fit=crop"}
                   alt={currentVideo.channel.name}
-                  className="w-11 h-11 rounded-full object-cover ring-2 ring-white/20"
+                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover ring-2 ring-white/30 group-hover:ring-white/60 transition-all"
                 />
-                <div className="flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-base">{currentVideo.channel.name}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-base sm:text-lg truncate">{currentVideo.channel.name}</span>
                     {currentVideo.channel.verified && (
-                      <CheckCircle className="h-4 w-4 text-blue-400 fill-blue-400" />
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400 fill-blue-400 flex-shrink-0" />
                     )}
                   </div>
-                  <span className="text-xs text-white/70">
+                  <span className="text-xs sm:text-sm text-white/70">
                     {(currentVideo.channel.subscribers || 0).toLocaleString()} subscribers
                   </span>
                 </div>
@@ -351,7 +389,7 @@ export default function ShortsPlayer({ videos, initialIndex = 0, onClose }: Shor
                     e.stopPropagation();
                     subscribeMutation.mutate();
                   }}
-                  className={`rounded-full px-4 h-9 font-semibold ${
+                  className={`rounded-full px-4 sm:px-6 h-9 sm:h-10 font-bold text-sm sm:text-base transition-all ${
                     isSubscribed 
                       ? "bg-white/20 text-white hover:bg-white/30" 
                       : "bg-white text-black hover:bg-white/90"
@@ -361,101 +399,101 @@ export default function ShortsPlayer({ videos, initialIndex = 0, onClose }: Shor
                 </Button>
               </div>
 
-              <h3 className="font-medium text-base line-clamp-2 leading-snug">
+              <h3 className="font-semibold text-base sm:text-lg line-clamp-2 leading-snug">
                 {currentVideo.title}
               </h3>
 
               {currentVideo.description && (
-                <p className="text-sm text-white/80 line-clamp-2 leading-snug">
+                <p className="text-sm sm:text-base text-white/80 line-clamp-2 leading-snug">
                   {currentVideo.description}
                 </p>
               )}
 
-              <p className="text-xs text-white/60">
+              <p className="text-xs sm:text-sm text-white/60 font-medium">
                 {formatViews(currentVideo.views || 0)} views
               </p>
             </div>
 
-            {/* Action buttons */}
-            <div className="flex flex-col items-center gap-5 pb-2">
+            {/* Action buttons - Mobile & Desktop optimized */}
+            <div className="flex flex-col items-center gap-4 sm:gap-5 pb-2">
               <button
                 onClick={handleLike}
-                className="flex flex-col items-center gap-1 text-white hover:scale-110 transition-transform active:scale-95"
+                className="flex flex-col items-center gap-1 text-white hover:scale-110 active:scale-95 transition-transform"
               >
                 <div className="relative">
                   <Heart
-                    className={`h-8 w-8 ${likeStatus?.hasLiked ? "fill-red-500 text-red-500" : ""}`}
+                    className={`h-7 w-7 sm:h-9 sm:w-9 ${likeStatus?.hasLiked ? "fill-red-500 text-red-500" : ""}`}
                   />
                 </div>
-                <span className="text-xs font-medium">{formatViews(stats?.likes || 0)}</span>
+                <span className="text-xs sm:text-sm font-bold">{formatViews(stats?.likes || 0)}</span>
               </button>
 
               <button
                 onClick={handleDislike}
-                className="flex flex-col items-center gap-1 text-white hover:scale-110 transition-transform active:scale-95"
+                className="flex flex-col items-center gap-1 text-white hover:scale-110 active:scale-95 transition-transform"
               >
                 <ThumbsDown
-                  className={`h-7 w-7 ${likeStatus?.hasDisliked ? "fill-white" : ""}`}
+                  className={`h-6 w-6 sm:h-8 sm:w-8 ${likeStatus?.hasDisliked ? "fill-white" : ""}`}
                 />
-                <span className="text-xs font-medium">Dislike</span>
+                <span className="text-xs sm:text-sm font-bold">Dislike</span>
               </button>
 
               <button
                 onClick={() => setLocation(`/watch/${currentVideo.id}`)}
-                className="flex flex-col items-center gap-1 text-white hover:scale-110 transition-transform active:scale-95"
+                className="flex flex-col items-center gap-1 text-white hover:scale-110 active:scale-95 transition-transform"
               >
-                <MessageCircle className="h-8 w-8" />
-                <span className="text-xs font-medium">{stats?.comments || 0}</span>
+                <MessageCircle className="h-7 w-7 sm:h-9 sm:w-9" />
+                <span className="text-xs sm:text-sm font-bold">{stats?.comments || 0}</span>
               </button>
 
               <button
                 onClick={handleShare}
-                className="flex flex-col items-center gap-1 text-white hover:scale-110 transition-transform active:scale-95"
+                className="flex flex-col items-center gap-1 text-white hover:scale-110 active:scale-95 transition-transform"
               >
-                <Share2 className="h-8 w-8" />
-                <span className="text-xs font-medium">Share</span>
+                <Share2 className="h-7 w-7 sm:h-9 sm:w-9" />
+                <span className="text-xs sm:text-sm font-bold">Share</span>
               </button>
 
               <button 
-                className="flex flex-col items-center gap-1 text-white hover:scale-110 transition-transform active:scale-95"
+                className="flex flex-col items-center gap-1 text-white hover:scale-110 active:scale-95 transition-transform"
                 onClick={() => toast({ title: "Remix", description: "Feature coming soon!" })}
               >
-                <Repeat2 className="h-7 w-7" />
-                <span className="text-xs font-medium">Remix</span>
+                <Repeat2 className="h-6 w-6 sm:h-8 sm:w-8" />
+                <span className="text-xs sm:text-sm font-bold">Remix</span>
               </button>
 
-              <button className="flex flex-col items-center gap-1 text-white hover:scale-110 transition-transform active:scale-95">
-                <MoreVertical className="h-7 w-7" />
+              <button className="flex flex-col items-center gap-1 text-white hover:scale-110 active:scale-95 transition-transform">
+                <MoreVertical className="h-6 w-6 sm:h-8 sm:w-8" />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Navigation buttons */}
+        {/* Navigation buttons - Desktop only */}
         {currentIndex > 0 && (
           <button
             onClick={handlePrevious}
-            className="absolute top-1/2 right-4 -translate-y-1/2 text-white/80 hover:text-white hover:bg-white/20 rounded-full p-2 transition-all"
+            className="hidden md:flex absolute top-1/2 right-6 -translate-y-1/2 items-center justify-center text-white/90 hover:text-white hover:bg-white/20 rounded-full p-3 transition-all"
           >
-            <ChevronUp className="h-7 w-7" />
+            <ChevronUp className="h-8 w-8" />
           </button>
         )}
 
         {currentIndex < videos.length - 1 && (
           <button
             onClick={handleNext}
-            className="absolute bottom-[40%] right-4 text-white/80 hover:text-white hover:bg-white/20 rounded-full p-2 transition-all"
+            className="hidden md:flex absolute bottom-[42%] right-6 items-center justify-center text-white/90 hover:text-white hover:bg-white/20 rounded-full p-3 transition-all"
           >
-            <ChevronDown className="h-7 w-7" />
+            <ChevronDown className="h-8 w-8" />
           </button>
         )}
 
         {/* Progress indicator */}
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+        <div className={`absolute top-20 sm:top-24 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2 z-20 transition-opacity ${showControls ? 'opacity-100' : 'opacity-0'}`}>
           {videos.slice(0, 10).map((_, idx) => (
             <div
               key={idx}
-              className={`h-0.5 w-8 rounded-full transition-all ${
+              className={`h-1 w-7 sm:w-10 rounded-full transition-all ${
                 idx === currentIndex
                   ? "bg-white"
                   : idx < currentIndex
@@ -464,7 +502,7 @@ export default function ShortsPlayer({ videos, initialIndex = 0, onClose }: Shor
               }`}
             />
           ))}
-          {videos.length > 10 && <span className="text-white/50 text-xs">...</span>}
+          {videos.length > 10 && <span className="text-white/60 text-xs sm:text-sm font-bold">+{videos.length - 10}</span>}
         </div>
       </div>
     </div>
