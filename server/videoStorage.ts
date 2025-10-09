@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Upload } from "@aws-sdk/lib-storage";
 import { Readable } from "stream";
 
@@ -214,4 +215,39 @@ export function isStorageConfigured(): boolean {
     process.env.IDRIVE_SECRET_KEY &&
     process.env.IDRIVE_BUCKET
   );
+}
+
+/**
+ * Generate pre-signed URL for direct upload to iDrive E2
+ * This allows browser to upload directly without going through server RAM
+ */
+export async function generatePresignedUploadUrl(
+  fileName: string,
+  contentType: string = "video/mp4",
+  fileType: 'video' | 'thumbnail' = 'video'
+): Promise<{ uploadUrl: string; key: string; expiresIn: number }> {
+  const timestamp = Date.now();
+  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const key = fileType === 'video' 
+    ? `videos/${timestamp}-${sanitizedFileName}`
+    : `thumbnails/${timestamp}-${sanitizedFileName}`;
+  
+  const command = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    ContentType: contentType,
+    CacheControl: "public, max-age=31536000",
+  });
+
+  // Generate URL valid for 1 hour
+  const expiresIn = 3600;
+  const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn });
+
+  console.log(`Generated pre-signed upload URL for: ${key} (expires in ${expiresIn}s)`);
+
+  return {
+    uploadUrl,
+    key,
+    expiresIn
+  };
 }

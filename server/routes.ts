@@ -4,7 +4,7 @@ import multer from "multer";
 import { storage } from "./storage";
 import { insertUserSchema, insertChannelSchema, insertVideoSchema, insertSpaceSchema, insertSubscriptionSchema, insertCommentSchema, insertLikeSchema, insertWatchHistorySchema, insertPlaylistSchema, insertPlaylistVideoSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { uploadVideoToStorage, uploadThumbnailToStorage, isStorageConfigured, getVideoFromStorage, getThumbnailFromStorage } from "./videoStorage";
+import { uploadVideoToStorage, uploadThumbnailToStorage, isStorageConfigured, getVideoFromStorage, getThumbnailFromStorage, generatePresignedUploadUrl } from "./videoStorage";
 import "./types";
 
 // Configure multer for memory storage
@@ -517,6 +517,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error serving thumbnail:", error);
       res.status(500).json({ message: "Failed to serve thumbnail: " + error.message });
+    }
+  });
+
+  // Generate pre-signed URL for direct upload to iDrive E2
+  // This bypasses server RAM limits, allowing large file uploads
+  app.post("/api/upload/presigned-url", async (req: any, res) => {
+    try {
+      // Check storage configuration
+      if (!isStorageConfigured()) {
+        return res.status(503).json({ 
+          message: "Storage not configured",
+          configured: false
+        });
+      }
+
+      // Check authentication
+      const userId = getUserIdFromRequest(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { fileName, contentType, fileType } = req.body;
+
+      if (!fileName) {
+        return res.status(400).json({ message: "fileName is required" });
+      }
+
+      // Generate pre-signed URL
+      const { uploadUrl, key, expiresIn } = await generatePresignedUploadUrl(
+        fileName,
+        contentType || "video/mp4",
+        fileType || "video"
+      );
+
+      console.log(`Generated pre-signed URL for ${userId}: ${key}`);
+
+      res.json({
+        uploadUrl,
+        key,
+        expiresIn,
+        message: "Pre-signed URL generated successfully"
+      });
+    } catch (error: any) {
+      console.error("Error generating pre-signed URL:", error);
+      res.status(500).json({ message: "Failed to generate upload URL: " + error.message });
     }
   });
 

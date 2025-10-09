@@ -267,47 +267,89 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
     setUploadProgress(0);
 
     try {
-      // Upload video file to iDrive E2
-      setUploadProgress(10);
-      const videoFormData = new FormData();
-      videoFormData.append('video', selectedFile);
-
-      const videoUploadResponse = await fetch('/api/upload/video', {
+      // Step 1: Get pre-signed URL for video upload
+      setUploadProgress(5);
+      const videoPresignedResponse = await fetch('/api/upload/presigned-url', {
         method: 'POST',
-        body: videoFormData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName: selectedFile.name,
+          contentType: selectedFile.type,
+          fileType: 'video'
+        }),
       });
 
-      if (!videoUploadResponse.ok) {
-        const error = await videoUploadResponse.json();
-        if (videoUploadResponse.status === 401) {
+      if (!videoPresignedResponse.ok) {
+        const error = await videoPresignedResponse.json();
+        if (videoPresignedResponse.status === 401) {
           throw new Error('Please login to upload videos');
-        } else if (videoUploadResponse.status === 503) {
+        } else if (videoPresignedResponse.status === 503) {
           throw new Error('Video storage not configured. Please set up iDrive E2 credentials.');
         }
-        throw new Error(error.message || 'Failed to upload video file');
+        throw new Error(error.message || 'Failed to generate upload URL');
       }
 
-      const videoResult = await videoUploadResponse.json();
-      setUploadProgress(50);
+      const { uploadUrl: videoUploadUrl, key: videoKey } = await videoPresignedResponse.json();
+      setUploadProgress(10);
 
-      // Upload thumbnail to iDrive E2
-      const thumbnailFormData = new FormData();
-      thumbnailFormData.append('thumbnail', thumbnail);
-
-      const thumbnailUploadResponse = await fetch('/api/upload/thumbnail', {
-        method: 'POST',
-        body: thumbnailFormData,
+      // Step 2: Upload video directly to iDrive E2 (bypasses server RAM!)
+      const videoDirectUploadResponse = await fetch(videoUploadUrl, {
+        method: 'PUT',
+        body: selectedFile,
+        headers: {
+          'Content-Type': selectedFile.type,
+        },
       });
 
-      if (!thumbnailUploadResponse.ok) {
-        const error = await thumbnailUploadResponse.json();
-        throw new Error(error.message || 'Failed to upload thumbnail');
+      if (!videoDirectUploadResponse.ok) {
+        throw new Error('Failed to upload video to storage');
       }
 
-      const thumbnailResult = await thumbnailUploadResponse.json();
+      setUploadProgress(50);
+
+      // Step 3: Get pre-signed URL for thumbnail upload
+      const thumbnailPresignedResponse = await fetch('/api/upload/presigned-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName: thumbnail.name,
+          contentType: thumbnail.type,
+          fileType: 'thumbnail'
+        }),
+      });
+
+      if (!thumbnailPresignedResponse.ok) {
+        const error = await thumbnailPresignedResponse.json();
+        throw new Error(error.message || 'Failed to generate thumbnail upload URL');
+      }
+
+      const { uploadUrl: thumbnailUploadUrl, key: thumbnailKey } = await thumbnailPresignedResponse.json();
+      setUploadProgress(60);
+
+      // Step 4: Upload thumbnail directly to iDrive E2
+      const thumbnailDirectUploadResponse = await fetch(thumbnailUploadUrl, {
+        method: 'PUT',
+        body: thumbnail,
+        headers: {
+          'Content-Type': thumbnail.type,
+        },
+      });
+
+      if (!thumbnailDirectUploadResponse.ok) {
+        throw new Error('Failed to upload thumbnail to storage');
+      }
+
       setUploadProgress(75);
 
-      // Create video record in database
+      // Construct URLs for video and thumbnail
+      const videoUrl = `/api/videos/stream/${encodeURIComponent(videoKey)}`;
+      const thumbnailUrl = `/api/thumbnails/${encodeURIComponent(thumbnailKey)}`;
+
+      // Step 5: Create video record in database
       const response = await fetch('/api/videos', {
         method: 'POST',
         headers: {
@@ -316,9 +358,9 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
         body: JSON.stringify({
           title: videoTitle,
           description: videoDescription || undefined,
-          thumbnail: thumbnailResult.thumbnailUrl,
-          videoUrl: videoResult.videoUrl,
-          storageKey: videoResult.storageKey,
+          thumbnail: thumbnailUrl,
+          videoUrl: videoUrl,
+          storageKey: videoKey,
           duration: videoDuration,
           isShorts: isShortVideo,
           category: selectedCategory || undefined,
