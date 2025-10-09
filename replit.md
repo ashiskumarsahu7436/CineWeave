@@ -67,6 +67,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes & Updates
 
+- **Video Player Modernization (Oct 9, 2025):**
+  - **YouTube-Style Controls:**
+    - 10-second skip controls moved to video center sides (left/right) instead of bottom
+    - Round buttons with backdrop blur and hover scale animations
+    - Controls auto-hide after 1 second on both mobile and desktop (YouTube behavior)
+  - **Modern Play/Pause Animation:**
+    - Center overlay with animated fade-in/zoom-in effect
+    - Shows correct icon (play/pause) based on current state
+    - Disappears after 1 second (instant feedback like YouTube)
+    - Static play button when paused with hover scale effect
+  - **Mobile Optimization:**
+    - Touch-friendly 56px buttons for skip controls
+    - Consistent auto-hide behavior across all devices
+    - Responsive sizing for all screen sizes
+
 - **Database Cleanup (Oct 9, 2025):**
   - Deleted all sample/seed videos from database (16 videos removed)
   - Fixed Shorts player default audio state: now **unmuted by default** instead of muted
