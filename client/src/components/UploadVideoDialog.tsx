@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Upload, Video, X, ChevronRight, ChevronLeft, Check, AlertCircle, PlayCircle, Film, Tag, Play } from "lucide-react";
 import {
   Dialog,
@@ -51,7 +51,6 @@ const VIDEO_CATEGORIES = [
   "Other"
 ];
 
-const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB limit (matches server-side multer config)
 const ACCEPTED_VIDEO_FORMATS = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
 
 export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDialogProps) {
@@ -62,6 +61,8 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
   const [isProcessing, setIsProcessing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [maxFileSize, setMaxFileSize] = useState<number>(500 * 1024 * 1024); // Default 500MB, will be updated from server
+  const [maxFileSizeMB, setMaxFileSizeMB] = useState<number>(500); // Default 500MB, will be updated from server
   
   // Video details
   const [videoTitle, setVideoTitle] = useState("");
@@ -96,12 +97,31 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
     { id: "visibility", label: "Visibility", completed: false },
   ];
 
+  useEffect(() => {
+    const fetchMaxUploadSize = async () => {
+      try {
+        const response = await fetch('/api/storage/status');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.maxUploadSize && data.maxUploadSizeMB) {
+            setMaxFileSize(data.maxUploadSize);
+            setMaxFileSizeMB(data.maxUploadSizeMB);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch max upload size:', error);
+      }
+    };
+
+    fetchMaxUploadSize();
+  }, []);
+
   const validateFile = (file: File): string | null => {
     if (!ACCEPTED_VIDEO_FORMATS.includes(file.type)) {
       return "Please upload a valid video file (MP4, WebM, OGG, or MOV)";
     }
-    if (file.size > MAX_FILE_SIZE) {
-      return `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`;
+    if (file.size > maxFileSize) {
+      return `File size must be less than ${maxFileSizeMB}MB`;
     }
     return null;
   };
@@ -486,7 +506,7 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
                     </p>
                     <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                       <AlertCircle className="h-4 w-4" />
-                      <span className="text-center">Max file size: {Math.floor(MAX_FILE_SIZE / (1024 * 1024))}MB • Supported: MP4, WebM, OGG, MOV</span>
+                      <span className="text-center">Max file size: {maxFileSizeMB}MB • Supported: MP4, WebM, OGG, MOV</span>
                     </div>
                   </div>
                   <Button
