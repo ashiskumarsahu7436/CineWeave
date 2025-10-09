@@ -387,12 +387,20 @@ export default function ShortsPlayer({ videos, initialIndex = 0, onClose }: Shor
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (!user) {
+                      toast({
+                        title: "Sign in required",
+                        description: "Please sign in to subscribe to channels",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
                     subscribeMutation.mutate();
                   }}
-                  className={`rounded-full px-4 sm:px-6 h-9 sm:h-10 font-bold text-sm sm:text-base transition-all ${
+                  className={`rounded-full px-5 sm:px-7 h-10 sm:h-11 font-bold text-sm sm:text-base transition-all shadow-lg ${
                     isSubscribed 
-                      ? "bg-white/20 text-white hover:bg-white/30" 
-                      : "bg-white text-black hover:bg-white/90"
+                      ? "bg-white/20 text-white hover:bg-white/30 border border-white/30" 
+                      : "bg-red-600 text-white hover:bg-red-700"
                   }`}
                 >
                   {isSubscribed ? "Subscribed" : "Subscribe"}
@@ -415,55 +423,78 @@ export default function ShortsPlayer({ videos, initialIndex = 0, onClose }: Shor
             </div>
 
             {/* Action buttons - Mobile & Desktop optimized */}
-            <div className="flex flex-col items-center gap-4 sm:gap-5 pb-2">
+            <div className="flex flex-col items-center gap-5 sm:gap-6 pb-2">
               <button
                 onClick={handleLike}
-                className="flex flex-col items-center gap-1 text-white hover:scale-110 active:scale-95 transition-transform"
+                className="flex flex-col items-center gap-1.5 text-white hover:scale-110 active:scale-95 transition-all duration-200"
               >
-                <div className="relative">
+                <div className="relative bg-white/10 rounded-full p-2 sm:p-2.5 backdrop-blur-sm hover:bg-white/20 transition-colors">
                   <Heart
-                    className={`h-7 w-7 sm:h-9 sm:w-9 ${likeStatus?.hasLiked ? "fill-red-500 text-red-500" : ""}`}
+                    className={`h-6 w-6 sm:h-7 sm:w-7 ${likeStatus?.hasLiked ? "fill-red-500 text-red-500" : ""}`}
                   />
                 </div>
-                <span className="text-xs sm:text-sm font-bold">{formatViews(stats?.likes || 0)}</span>
+                <span className="text-xs sm:text-sm font-bold drop-shadow-lg">{formatViews(stats?.likes || 0)}</span>
               </button>
 
               <button
                 onClick={handleDislike}
-                className="flex flex-col items-center gap-1 text-white hover:scale-110 active:scale-95 transition-transform"
+                className="flex flex-col items-center gap-1.5 text-white hover:scale-110 active:scale-95 transition-all duration-200"
               >
-                <ThumbsDown
-                  className={`h-6 w-6 sm:h-8 sm:w-8 ${likeStatus?.hasDisliked ? "fill-white" : ""}`}
-                />
-                <span className="text-xs sm:text-sm font-bold">Dislike</span>
+                <div className="relative bg-white/10 rounded-full p-2 sm:p-2.5 backdrop-blur-sm hover:bg-white/20 transition-colors">
+                  <ThumbsDown
+                    className={`h-6 w-6 sm:h-7 sm:w-7 ${likeStatus?.hasDisliked ? "fill-white" : ""}`}
+                  />
+                </div>
+                <span className="text-xs sm:text-sm font-bold drop-shadow-lg">Dislike</span>
               </button>
 
               <button
-                onClick={() => setLocation(`/watch/${currentVideo.id}`)}
-                className="flex flex-col items-center gap-1 text-white hover:scale-110 active:scale-95 transition-transform"
+                onClick={() => {
+                  if (!user) {
+                    toast({
+                      title: "Sign in required",
+                      description: "Please sign in to view and post comments",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  toast({
+                    title: "Comments",
+                    description: "Comments feature coming soon for Shorts!",
+                  });
+                }}
+                className="flex flex-col items-center gap-1.5 text-white hover:scale-110 active:scale-95 transition-all duration-200"
               >
-                <MessageCircle className="h-7 w-7 sm:h-9 sm:w-9" />
-                <span className="text-xs sm:text-sm font-bold">{stats?.comments || 0}</span>
+                <div className="relative bg-white/10 rounded-full p-2 sm:p-2.5 backdrop-blur-sm hover:bg-white/20 transition-colors">
+                  <MessageCircle className="h-6 w-6 sm:h-7 sm:w-7" />
+                </div>
+                <span className="text-xs sm:text-sm font-bold drop-shadow-lg">{stats?.comments || 0}</span>
               </button>
 
               <button
                 onClick={handleShare}
-                className="flex flex-col items-center gap-1 text-white hover:scale-110 active:scale-95 transition-transform"
+                className="flex flex-col items-center gap-1.5 text-white hover:scale-110 active:scale-95 transition-all duration-200"
               >
-                <Share2 className="h-7 w-7 sm:h-9 sm:w-9" />
-                <span className="text-xs sm:text-sm font-bold">Share</span>
+                <div className="relative bg-white/10 rounded-full p-2 sm:p-2.5 backdrop-blur-sm hover:bg-white/20 transition-colors">
+                  <Share2 className="h-6 w-6 sm:h-7 sm:w-7" />
+                </div>
+                <span className="text-xs sm:text-sm font-bold drop-shadow-lg">Share</span>
               </button>
 
               <button 
-                className="flex flex-col items-center gap-1 text-white hover:scale-110 active:scale-95 transition-transform"
+                className="flex flex-col items-center gap-1.5 text-white hover:scale-110 active:scale-95 transition-all duration-200"
                 onClick={() => toast({ title: "Remix", description: "Feature coming soon!" })}
               >
-                <Repeat2 className="h-6 w-6 sm:h-8 sm:w-8" />
-                <span className="text-xs sm:text-sm font-bold">Remix</span>
+                <div className="relative bg-white/10 rounded-full p-2 sm:p-2.5 backdrop-blur-sm hover:bg-white/20 transition-colors">
+                  <Repeat2 className="h-6 w-6 sm:h-7 sm:w-7" />
+                </div>
+                <span className="text-xs sm:text-sm font-bold drop-shadow-lg">Remix</span>
               </button>
 
-              <button className="flex flex-col items-center gap-1 text-white hover:scale-110 active:scale-95 transition-transform">
-                <MoreVertical className="h-6 w-6 sm:h-8 sm:w-8" />
+              <button className="flex flex-col items-center gap-1.5 text-white hover:scale-110 active:scale-95 transition-all duration-200">
+                <div className="relative bg-white/10 rounded-full p-2 sm:p-2.5 backdrop-blur-sm hover:bg-white/20 transition-colors">
+                  <MoreVertical className="h-6 w-6 sm:h-7 sm:w-7" />
+                </div>
               </button>
             </div>
           </div>

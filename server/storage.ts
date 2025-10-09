@@ -198,7 +198,8 @@ export class MemStorage implements IStorage {
   }
 
   async getVideos(limit?: number, category?: string): Promise<VideoWithChannel[]> {
-    let videos = Array.from(this.videos.values());
+    let videos = Array.from(this.videos.values())
+      .filter(video => !video.isShorts); // Exclude shorts from regular videos
     
     if (category) {
       videos = videos.filter(video => video.category === category);
@@ -603,7 +604,7 @@ export class MemStorage implements IStorage {
 
 import { db } from "./db";
 import { users, channels, videos, spaces, subscriptions, comments, likes, watchHistory, playlists, playlistVideos, notifications } from "@shared/schema";
-import { eq, and, or, ilike, inArray, sql, desc } from "drizzle-orm";
+import { eq, and, or, ilike, inArray, sql, desc, isNull } from "drizzle-orm";
 
 export class DbStorage implements IStorage {
   private normalizeArray<T>(result: T[] | null): T[] {
@@ -703,6 +704,13 @@ export class DbStorage implements IStorage {
   }
 
   async getVideos(limit?: number, category?: string): Promise<VideoWithChannel[]> {
+    const whereConditions = category 
+      ? and(
+          or(eq(videos.isShorts, false), isNull(videos.isShorts)),
+          eq(videos.category, category)
+        )
+      : or(eq(videos.isShorts, false), isNull(videos.isShorts));
+
     let query = db
       .select({
         video: videos,
@@ -710,11 +718,8 @@ export class DbStorage implements IStorage {
       })
       .from(videos)
       .innerJoin(channels, eq(videos.channelId, channels.id))
+      .where(whereConditions)
       .orderBy(sql`${videos.uploadedAt} DESC`);
-
-    if (category) {
-      query = query.where(eq(videos.category, category)) as any;
-    }
 
     if (limit) {
       query = query.limit(limit) as any;
