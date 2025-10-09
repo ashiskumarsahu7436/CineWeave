@@ -713,12 +713,12 @@ export default function Watch() {
   };
 
   return (
-    <div className="max-w-[1800px] mx-auto px-2 sm:px-3 md:px-4 py-3 sm:py-4 md:py-6 w-full overflow-x-hidden">
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr,400px] gap-3 sm:gap-4 md:gap-6 w-full">
+    <div className="max-w-[1800px] mx-auto px-0 sm:px-3 md:px-4 py-0 sm:py-4 md:py-6 w-full overflow-x-hidden">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr,400px] gap-0 sm:gap-4 md:gap-6 w-full">
         {/* Main Content */}
-        <div className="space-y-5">
+        <div className="space-y-0 sm:space-y-5">
           {/* Video Player */}
-          <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
+          <div className="aspect-video bg-black sm:rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
             <CustomVideoPlayer
               src={video.videoUrl}
               videoRef={videoRef}
@@ -734,39 +734,50 @@ export default function Watch() {
             />
           </div>
 
-          {/* Video Title */}
-          <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold leading-tight hover:text-primary/90 transition-colors cursor-default break-words">
-            {video.title}
-          </h1>
-          
-          {/* Channel Info & Actions */}
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-3 w-full">
-            {/* Channel Section */}
-            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 w-full sm:w-auto">
-              <Avatar className="h-12 w-12 flex-shrink-0 ring-2 ring-background cursor-pointer hover:ring-primary transition-all" onClick={handleChannelClick}>
-                <AvatarImage src={video.channel.avatar || undefined} />
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-lg font-bold">
-                  {video.channel.name[0]}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-base truncate hover:text-primary cursor-pointer transition-colors" onClick={handleChannelClick}>
-                    {video.channel.name}
-                  </h2>
-                  {video.channel.verified && (
-                    <svg className="h-5 w-5 text-primary flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                    </svg>
-                  )}
+          {/* Video Info Section - Mobile Optimized */}
+          <div className="px-3 sm:px-0 py-3 sm:py-0 space-y-3">
+            {/* Video Title */}
+            <h1 className="text-lg sm:text-lg md:text-xl lg:text-2xl font-bold leading-tight hover:text-primary/90 transition-colors cursor-default break-words">
+              {video.title}
+            </h1>
+
+            {/* Views and Date - Compact Line (Mobile Only) */}
+            <div className="flex items-center gap-1 text-sm text-muted-foreground sm:hidden">
+              <span className="font-medium">{video.views?.toLocaleString()} views</span>
+              <span>•</span>
+              <span>
+                {formatDistanceToNow(new Date(video.uploadedAt || Date.now()), { addSuffix: true })}
+              </span>
+            </div>
+            
+            {/* Channel Section - Single Row on Mobile */}
+            <div className="flex items-center justify-between gap-3 w-full">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 ring-2 ring-background cursor-pointer hover:ring-primary transition-all" onClick={handleChannelClick}>
+                  <AvatarImage src={video.channel.avatar || undefined} />
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-base sm:text-lg font-bold">
+                    {video.channel.name[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <h2 className="font-semibold text-sm sm:text-base truncate hover:text-primary cursor-pointer transition-colors" onClick={handleChannelClick}>
+                      {video.channel.name}
+                    </h2>
+                    {video.channel.verified && (
+                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                      </svg>
+                    )}
+                  </div>
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                    {video.channel.subscribers?.toLocaleString()} subscribers
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {video.channel.subscribers?.toLocaleString()} subscribers
-                </p>
               </div>
               <Button 
                 variant={isSubscribed ? "secondary" : "default"} 
-                className={`rounded-full px-4 py-1.5 sm:px-6 sm:py-2 h-auto font-semibold transition-all ${
+                className={`rounded-full px-5 py-2.5 sm:px-6 sm:py-2 h-11 sm:h-auto font-semibold transition-all flex-shrink-0 ${
                   isSubscribed 
                     ? 'hover:bg-secondary/80' 
                     : 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/30'
@@ -778,61 +789,65 @@ export default function Watch() {
               </Button>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
-              {/* Like/Dislike Group */}
-              <div className="flex items-center bg-secondary/50 rounded-full overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className={`rounded-none h-auto px-3 py-1.5 sm:px-4 sm:py-2 ${userLike?.type === 'like' ? 'bg-primary/10 text-primary' : ''} hover:bg-primary/20 transition-all`}
-                  onClick={handleLike}
-                  disabled={likeMutation.isPending}
-                >
-                  <ThumbsUp className={`h-4 w-4 mr-1.5 sm:mr-2 ${userLike?.type === 'like' ? 'fill-current' : ''}`} />
-                  <span className="font-semibold text-xs sm:text-sm">{likeCounts.likes}</span>
-                </Button>
-                <Separator orientation="vertical" className="h-6" />
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className={`rounded-none h-auto px-3 py-1.5 sm:px-4 sm:py-2 ${userLike?.type === 'dislike' ? 'bg-primary/10 text-primary' : ''} hover:bg-primary/20 transition-all`}
-                  onClick={handleDislike}
-                  disabled={likeMutation.isPending}
-                >
-                  <ThumbsDown className={`h-4 w-4 ${userLike?.type === 'dislike' ? 'fill-current' : ''}`} />
-                </Button>
-              </div>
+            {/* Action Buttons - Horizontal Scrollable on Mobile */}
+            <div className="relative -mx-3 sm:mx-0">
+              <div className="overflow-x-auto scrollbar-hide px-3 sm:px-0">
+                <div className="flex items-center gap-2 sm:flex-wrap w-max sm:w-auto">
+                  {/* Like/Dislike Group */}
+                  <div className="flex items-center bg-secondary/50 rounded-full overflow-hidden shadow-sm hover:shadow-md transition-shadow flex-shrink-0">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className={`rounded-none h-11 sm:h-auto px-4 sm:px-4 py-2.5 sm:py-2 ${userLike?.type === 'like' ? 'bg-primary/10 text-primary' : ''} hover:bg-primary/20 transition-all`}
+                      onClick={handleLike}
+                      disabled={likeMutation.isPending}
+                    >
+                      <ThumbsUp className={`h-5 w-5 sm:h-4 sm:w-4 mr-2 ${userLike?.type === 'like' ? 'fill-current' : ''}`} />
+                      <span className="font-semibold text-sm">{likeCounts.likes}</span>
+                    </Button>
+                    <Separator orientation="vertical" className="h-6" />
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className={`rounded-none h-11 sm:h-auto px-4 sm:px-4 py-2.5 sm:py-2 ${userLike?.type === 'dislike' ? 'bg-primary/10 text-primary' : ''} hover:bg-primary/20 transition-all`}
+                      onClick={handleDislike}
+                      disabled={likeMutation.isPending}
+                    >
+                      <ThumbsDown className={`h-5 w-5 sm:h-4 sm:w-4 ${userLike?.type === 'dislike' ? 'fill-current' : ''}`} />
+                    </Button>
+                  </div>
 
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                className="rounded-full h-auto px-3 py-1.5 sm:px-5 sm:py-2 hover:bg-secondary/80 transition-all shadow-sm"
-                onClick={handleShare}
-              >
-                <Share2 className="h-4 w-4 mr-1.5 sm:mr-2" />
-                <span className="font-semibold text-xs sm:text-sm">Share</span>
-              </Button>
-              
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                className="rounded-full h-auto px-3 py-1.5 sm:px-5 sm:py-2 hover:bg-secondary/80 transition-all shadow-sm"
-                onClick={handleSave}
-              >
-                <Clock className="h-4 w-4 mr-1.5 sm:mr-2" />
-                <span className="font-semibold text-xs sm:text-sm">Save</span>
-              </Button>
-              
-              <Button variant="secondary" size="sm" className="rounded-full h-auto px-3 py-1.5 sm:py-2 hover:bg-secondary/80 transition-all shadow-sm">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    className="rounded-full h-11 sm:h-auto px-5 py-2.5 sm:px-5 sm:py-2 hover:bg-secondary/80 transition-all shadow-sm flex-shrink-0"
+                    onClick={handleShare}
+                  >
+                    <Share2 className="h-5 w-5 sm:h-4 sm:w-4 mr-2" />
+                    <span className="font-semibold text-sm">Share</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    className="rounded-full h-11 sm:h-auto px-5 py-2.5 sm:px-5 sm:py-2 hover:bg-secondary/80 transition-all shadow-sm flex-shrink-0"
+                    onClick={handleSave}
+                  >
+                    <Clock className="h-5 w-5 sm:h-4 sm:w-4 mr-2" />
+                    <span className="font-semibold text-sm">Save</span>
+                  </Button>
+                  
+                  <Button variant="secondary" size="sm" className="rounded-full h-11 sm:h-auto px-4 py-2.5 sm:py-2 hover:bg-secondary/80 transition-all shadow-sm flex-shrink-0">
+                    <MoreVertical className="h-5 w-5 sm:h-4 sm:w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Description Section */}
-          <div className="bg-secondary/30 rounded-2xl p-3 sm:p-4 md:p-5 hover:bg-secondary/40 transition-colors">
-            <div className="flex gap-2 sm:gap-4 text-xs sm:text-sm font-semibold mb-3 flex-wrap">
+          <div className="mx-3 sm:mx-0 bg-secondary/30 rounded-2xl p-3 sm:p-4 md:p-5 hover:bg-secondary/40 transition-colors">
+            <div className="flex gap-2 sm:gap-4 text-xs sm:text-sm font-semibold mb-3 flex-wrap hidden sm:flex">
               <span className="text-foreground">{video.views?.toLocaleString()} views</span>
               <span className="text-muted-foreground">
                 {new Date(video.uploadedAt || Date.now()).toLocaleDateString('en-US', { 
@@ -867,7 +882,7 @@ export default function Watch() {
           </div>
 
           {/* Comments Section */}
-          <div className="space-y-4 sm:space-y-6 pb-6 sm:pb-8">
+          <div className="space-y-4 sm:space-y-6 pb-6 sm:pb-8 px-3 sm:px-0">
             <div className="flex items-center gap-3 sm:gap-4">
               <h2 className="font-bold text-lg sm:text-xl">{comments.length} Comments</h2>
             </div>
@@ -930,9 +945,9 @@ export default function Watch() {
         </div>
 
         {/* Sidebar - Related Videos */}
-        <div className="space-y-2 sm:space-y-3 w-full overflow-x-hidden">
+        <div className="space-y-2 sm:space-y-3 w-full overflow-x-hidden px-3 sm:px-0">
           <div className="xl:sticky top-4 space-y-2 sm:space-y-3">
-            <h2 className="font-bold text-base sm:text-lg md:text-xl px-2">Related Videos</h2>
+            <h2 className="font-bold text-base sm:text-lg md:text-xl">Related Videos</h2>
             <div className="space-y-2 sm:space-y-3">
               {relatedVideos.map((relatedVideo) => (
                 <div 
