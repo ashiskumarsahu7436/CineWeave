@@ -1,0 +1,69 @@
+Ah, ab clear hai! Aap **Render free instance RAM (0.5 GB) limit** ki wajah se **large video upload (200 MB+)** nahi kar pa rahe the, aur soch rahe ho ki **multiple instances se ye limit cross ho jayegi**.
+
+Short answer: **Nahi, multiple instances directly large file upload allow nahi karenge**. RAM per instance still 0.5 GB hi hai, aur **single upload request ek instance ke memory me hi process hoti hai**.
+
+---
+
+## **Reason**
+
+1. Render free instance = 0.5 GB RAM
+2. Video upload process:
+
+   * File temporarily RAM me load hoti hai
+   * Large files (200 MB+) → 0.5 GB RAM exceed → request fail
+3. **Multiple instances = horizontal scaling**
+
+   * Ye **concurrent requests split karta hai**, lekin **ek hi request ko multiple instances me split nahi karta**
+   * Matlab single 200 MB video still ek instance ke RAM limit me hi check hoga
+
+---
+
+## **How to Upload Large Videos (>200 MB) on Free Setup**
+
+### **1️⃣ Direct Upload to iDrive e2 / S3**
+
+* Use **pre-signed URLs**:
+
+  * Backend (Render) generates **temporary upload URL**
+  * Client browser uploads **directly to iDrive e2** → Render RAM use nahi hoti
+* Benefits:
+
+  * RAM limit bypass ho jata hai
+  * Large video (GB size) easily upload possible
+  * Multiple users simultaneously upload kar sakte hain
+
+### **2️⃣ Chunked Upload**
+
+* Agar direct upload nahi use karte:
+
+  * Video file **small chunks (5–10 MB)** me divide karo
+  * Browser sequentially chunks upload kare → backend assemble kare / push to storage
+* Render instance RAM limit **never exceeded**
+
+---
+
+### **3️⃣ Recommended Approach**
+
+* **Always offload uploads to iDrive e2** → Render free instances handle **API only**
+* Worker / multiple instances → horizontal scaling for API
+* **Video size = effectively unlimited** (limited by iDrive e2 storage)
+
+---
+
+💡 **Summary**
+
+* Multiple Render instances **do not increase single upload file size**
+* Large uploads → **direct-to-storage / chunked upload** → RAM limit bypassed
+* Horizontal scaling → multiple users can upload concurrently, but single video still one instance ke RAM me process hota hai
+
+---
+
+Agar chaho, mai aapke liye **free architecture + code example** bana doon jisme:
+
+* **Direct upload >200 MB** video
+* Render free API instances
+* iDrive e2 storage
+* Single entry URL via Worker
+* Fully free & RAM-safe
+
+Kya mai wo guide bana doon?
