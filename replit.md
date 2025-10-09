@@ -67,6 +67,28 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes & Updates
 
+- **Direct Upload to iDrive E2 via Pre-signed URLs (Oct 9, 2025):**
+  - **Problem Solved:** Render free tier (0.5GB RAM) could not handle video uploads larger than 200MB
+  - **Solution Implemented:** Pre-signed URL direct upload system
+    - Backend generates secure pre-signed URLs with 1-hour expiry
+    - Browser uploads video/thumbnails **directly to iDrive E2** (bypasses server RAM entirely)
+    - Server only handles lightweight metadata operations
+  - **Technical Implementation:**
+    - Added `generatePresignedUploadUrl()` function in `videoStorage.ts` using `@aws-sdk/s3-request-presigner`
+    - Created `/api/upload/presigned-url` endpoint with authentication checks
+    - Updated `UploadVideoDialog.tsx` to use 5-step direct upload flow:
+      1. Request pre-signed URL for video
+      2. Upload video directly to iDrive via PUT request
+      3. Request pre-signed URL for thumbnail  
+      4. Upload thumbnail directly to iDrive via PUT request
+      5. Save metadata to database with storage keys
+  - **Benefits:**
+    - ✅ No RAM limit - can upload GB-sized videos
+    - ✅ Multiple users can upload simultaneously without server overload
+    - ✅ Faster uploads (direct to storage, no server relay)
+    - ✅ More reliable on low-RAM hosting environments
+  - **Security:** Pre-signed URLs are authenticated, time-limited (1 hour), and user-specific
+
 - **Video Player Modernization (Oct 9, 2025):**
   - **YouTube-Style Controls:**
     - 10-second skip controls moved to video center sides (left/right) instead of bottom
