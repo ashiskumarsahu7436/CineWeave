@@ -154,3 +154,26 @@ Preferred communication style: Simple, everyday language.
   - Improved spacing and padding for mobile screens (<640px)
   - Clean separation of mobile and desktop layouts using Tailwind breakpoints
   - Enhanced visual hierarchy with better typography scaling
+
+- **Shorts Player Improvements & Feed Separation (Oct 9, 2025):**
+  - **YouTube-Style Vertical Experience:**
+    - Shorts page now directly opens full-screen vertical player (no grid view)
+    - Seamless vertical scrolling/swiping between shorts videos
+    - Auto-playing immersive experience matching YouTube Shorts
+  - **Enhanced UI/UX:**
+    - Action buttons (like, dislike, comment, share, remix) with circular glass-morphism backgrounds
+    - Improved button sizing and spacing for better touch targets
+    - Subscribe button with proper authentication guard and YouTube-style red accent
+    - Text labels with drop-shadow for better visibility
+    - Smooth hover and active states with scale animations
+  - **Authentication Improvements:**
+    - Like, dislike, and subscribe features now show proper "Sign in required" messages when unauthenticated
+    - Comment button no longer redirects to long video player, shows appropriate toast message
+  - **Backend Feed Separation:**
+    - `/api/videos` endpoint now excludes shorts (filters with `isShorts = false`)
+    - `/api/videos/shorts` endpoint exclusively serves shorts content
+    - Home page feed remains clean with only long-form videos
+    - Category filtering properly integrated with shorts exclusion
+  - **Dynamic Upload Size:**
+    - Upload dialog fetches max file size from `/api/storage/status` dynamically
+    - No more hard-coded 500MB limit - adapts to backend configuration
