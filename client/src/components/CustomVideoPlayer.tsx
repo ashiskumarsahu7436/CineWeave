@@ -30,8 +30,10 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
   const [showControls, setShowControls] = useState(true);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [quality, setQuality] = useState("Auto");
+  const [showPlayPauseAnimation, setShowPlayPauseAnimation] = useState(false);
 
   const controlsTimeout = useRef<NodeJS.Timeout | null>(null);
+  const playPauseAnimationTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -94,6 +96,15 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
     } else {
       video.pause();
     }
+
+    // Show play/pause animation for 1 second (YouTube style)
+    setShowPlayPauseAnimation(true);
+    if (playPauseAnimationTimeout.current) {
+      clearTimeout(playPauseAnimationTimeout.current);
+    }
+    playPauseAnimationTimeout.current = setTimeout(() => {
+      setShowPlayPauseAnimation(false);
+    }, 1000);
   };
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -191,12 +202,25 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
         onError={onError}
       />
 
-      {/* Play button overlay */}
-      {!isPlaying && (
+      {/* Modern Play/Pause Animation Overlay (YouTube style) */}
+      {showPlayPauseAnimation && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <div className="bg-black/60 rounded-full p-4 sm:p-6 animate-in fade-in zoom-in duration-200">
+            {isPlaying ? (
+              <Play className="h-12 w-12 sm:h-16 sm:w-16 text-white" fill="white" />
+            ) : (
+              <Pause className="h-12 w-12 sm:h-16 sm:w-16 text-white" fill="white" />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Static Play button when paused */}
+      {!isPlaying && !showPlayPauseAnimation && (
         <div className="absolute inset-0 flex items-center justify-center">
           <Button
             size="lg"
-            className="h-20 w-20 rounded-full bg-white/90 hover:bg-white text-black"
+            className="h-20 w-20 rounded-full bg-white/90 hover:bg-white text-black transition-transform hover:scale-110"
             onClick={(e) => {
               e.stopPropagation();
               togglePlay();
@@ -206,6 +230,39 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
           </Button>
         </div>
       )}
+
+      {/* 10-Second Skip Controls (YouTube style - center sides) */}
+      <div className={`absolute inset-0 flex items-center justify-between px-4 sm:px-8 pointer-events-none transition-opacity duration-300 ${
+        showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
+      }`}>
+        {/* Skip Backward 10s - Left Side */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="pointer-events-auto h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm transition-all hover:scale-110"
+          onClick={(e) => {
+            e.stopPropagation();
+            skipBackward();
+          }}
+          title="Rewind 10 seconds"
+        >
+          <RotateCcw className="h-6 w-6 sm:h-7 sm:w-7" />
+        </Button>
+
+        {/* Skip Forward 10s - Right Side */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="pointer-events-auto h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm transition-all hover:scale-110"
+          onClick={(e) => {
+            e.stopPropagation();
+            skipForward();
+          }}
+          title="Forward 10 seconds"
+        >
+          <RotateCw className="h-6 w-6 sm:h-7 sm:w-7" />
+        </Button>
+      </div>
 
       {/* Controls */}
       <div
@@ -243,28 +300,6 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
               ) : (
                 <Play className="h-5 w-5 sm:h-5 sm:w-5" fill="currentColor" />
               )}
-            </Button>
-
-            {/* Skip Backward 10s - Mobile & Desktop */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/20 h-10 w-10 sm:h-9 sm:w-9"
-              onClick={skipBackward}
-              title="Rewind 10 seconds"
-            >
-              <RotateCcw className="h-5 w-5" />
-            </Button>
-
-            {/* Skip Forward 10s - Mobile & Desktop */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/20 h-10 w-10 sm:h-9 sm:w-9"
-              onClick={skipForward}
-              title="Forward 10 seconds"
-            >
-              <RotateCw className="h-5 w-5" />
             </Button>
 
             {/* Volume - hide on very small screens */}
