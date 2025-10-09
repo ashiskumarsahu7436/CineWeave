@@ -164,14 +164,12 @@ export default function CustomVideoPlayer({ src, onPlay, onError, videoRef: exte
     if (controlsTimeout.current) {
       clearTimeout(controlsTimeout.current);
     }
-    // Hide controls after 2s on mobile, 3s on desktop
-    const isMobile = window.innerWidth < 768;
-    const hideDelay = isMobile ? 2000 : 3000;
+    // Hide controls after 1 second (YouTube style)
     controlsTimeout.current = setTimeout(() => {
       if (isPlaying) {
         setShowControls(false);
       }
-    }, hideDelay);
+    }, 1000);
   };
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
