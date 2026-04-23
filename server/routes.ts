@@ -138,12 +138,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Set session
-      if (req.session) {
-        req.session.userId = user.id;
+      // Set session and explicitly save it before responding so that:
+      //  1. The Set-Cookie header is reliably included in the response.
+      //  2. Any session-store error (e.g. sessions table missing) surfaces
+      //     instead of being swallowed.
+      if (!req.session) {
+        return res.status(500).json({ message: "Session middleware not initialized" });
       }
-      
-      res.json({ message: "Login successful", user });
+
+      req.session.userId = user.id;
+      req.session.save((err) => {
+        if (err) {
+          console.error("Failed to save session after OTP verify:", err);
+          return res.status(500).json({ message: "Failed to start session" });
+        }
+        res.json({ message: "Login successful", user });
+      });
     } catch (error) {
       console.error("Error verifying OTP:", error);
       res.status(500).json({ message: "Failed to verify OTP" });
