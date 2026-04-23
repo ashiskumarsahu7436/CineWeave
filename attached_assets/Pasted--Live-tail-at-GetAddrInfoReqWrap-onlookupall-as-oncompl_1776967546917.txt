@@ -1,0 +1,56 @@
+
+
+Live tail
+
+
+
+    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+  errno: -3008,
+  code: 'ENOTFOUND',
+  syscall: 'getaddrinfo',
+  hostname: 'XM8+*P'
+}
+5:58:08 PM [express] POST /api/auth/email/verify-otp 500 in 3ms :: {"message":"Failed to verify OTP"}
+Error verifying OTP: Error: getaddrinfo ENOTFOUND XM8+*P
+    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+  errno: -3008,
+  code: 'ENOTFOUND',
+  syscall: 'getaddrinfo',
+  hostname: 'XM8+*P'
+}
+5:58:09 PM [express] POST /api/auth/email/verify-otp 500 in 4ms :: {"message":"Failed to verify OTP"}
+6:00:02 PM [express] GET /api/auth/user 401 in 1ms :: {"message":"Unauthorized"}
+6:00:16 PM [express] GET /api/login 302 in 2ms
+6:00:16 PM [express] GET /api/auth/google 302 in 2ms
+Error: Error: getaddrinfo ENOTFOUND XM8+*P
+    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+  errno: -3008,
+  code: 'ENOTFOUND',
+  syscall: 'getaddrinfo',
+  hostname: 'XM8+*P'
+}
+6:00:22 PM [express] GET /api/auth/google/callback 500 in 311ms :: {"message":"getaddrinfo ENOTFOUND…
+6:00:26 PM [express] GET /api/auth/user 401 in 0ms :: {"message":"Unauthorized"}
+6:00:37 PM [express] GET /api/login 302 in 1ms
+6:00:37 PM [express] GET /api/auth/google 302 in 1ms
+==> Detected service running on port 10000
+==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+6:00:42 PM [express] GET /api/auth/user 401 in 1ms :: {"message":"Unauthorized"}
+OTP would be sent to: ashissahu7436@gmail.com
+6:00:56 PM [express] POST /api/auth/email/send-otp 200 in 1ms :: {"message":"OTP sent successfully",…
+Error verifying OTP: Error: getaddrinfo ENOTFOUND XM8+*P
+    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+  errno: -3008,
+  code: 'ENOTFOUND',
+  syscall: 'getaddrinfo',
+  hostname: 'XM8+*P'
+}
+6:01:02 PM [express] POST /api/auth/email/verify-otp 500 in 5ms :: {"message":"Failed to verify OTP"}
+Error verifying OTP: Error: getaddrinfo ENOTFOUND XM8+*P
+    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+  errno: -3008,
+  code: 'ENOTFOUND',
+  syscall: 'getaddrinfo',
+  hostname: 'XM8+*P'
+}
+6:01:03 PM [express] POST /api/auth/email/verify-otp 500 in 4ms :: {"message":"Failed to verify OTP"}
