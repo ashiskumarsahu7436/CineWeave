@@ -287,89 +287,77 @@ export default function UploadVideoDialog({ open, onOpenChange }: UploadVideoDia
     setUploadProgress(0);
 
     try {
-      // Step 1: Get pre-signed URL for video upload
-      setUploadProgress(5);
-      const videoPresignedResponse = await fetch('/api/upload/presigned-url', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fileName: selectedFile.name,
-          contentType: selectedFile.type,
-          fileType: 'video'
-        }),
-      });
+      // Helper: get a Cloudinary signed-upload payload from the server, then
+      // POST the file directly to Cloudinary (bypasses our server RAM).
+      const uploadToCloudinary = async (
+        file: File,
+        fileType: 'video' | 'thumbnail'
+      ): Promise<{ secureUrl: string; publicId: string }> => {
+        const sigRes = await fetch('/api/upload/presigned-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: file.name,
+            contentType: file.type,
+            fileType,
+          }),
+        });
 
-      if (!videoPresignedResponse.ok) {
-        const error = await videoPresignedResponse.json();
-        if (videoPresignedResponse.status === 401) {
-          throw new Error('Please login to upload videos');
-        } else if (videoPresignedResponse.status === 503) {
-          throw new Error('Video storage not configured. Please set up iDrive E2 credentials.');
+        if (!sigRes.ok) {
+          const error = await sigRes.json().catch(() => ({}));
+          if (sigRes.status === 401) {
+            throw new Error('Please login to upload videos');
+          } else if (sigRes.status === 503) {
+            throw new Error('Storage not configured. Please set up Cloudinary credentials.');
+          }
+          throw new Error(error.message || 'Failed to generate upload URL');
         }
-        throw new Error(error.message || 'Failed to generate upload URL');
-      }
 
-      const { uploadUrl: videoUploadUrl, key: videoKey } = await videoPresignedResponse.json();
-      setUploadProgress(10);
+        const {
+          uploadUrl,
+          apiKey,
+          timestamp,
+          signature,
+          folder,
+        } = await sigRes.json();
 
-      // Step 2: Upload video directly to iDrive E2 (bypasses server RAM!)
-      const videoDirectUploadResponse = await fetch(videoUploadUrl, {
-        method: 'PUT',
-        body: selectedFile,
-        headers: {
-          'Content-Type': selectedFile.type,
-        },
-      });
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('api_key', apiKey);
+        formData.append('timestamp', String(timestamp));
+        formData.append('signature', signature);
+        formData.append('folder', folder);
 
-      if (!videoDirectUploadResponse.ok) {
-        throw new Error('Failed to upload video to storage');
-      }
+        const cloudRes = await fetch(uploadUrl, {
+          method: 'POST',
+          body: formData,
+        });
 
+        if (!cloudRes.ok) {
+          const text = await cloudRes.text().catch(() => '');
+          throw new Error(`Failed to upload ${fileType} to Cloudinary: ${text}`);
+        }
+
+        const result = await cloudRes.json();
+        return { secureUrl: result.secure_url, publicId: result.public_id };
+      };
+
+      // Step 1: Upload video directly to Cloudinary
+      setUploadProgress(5);
+      const { secureUrl: videoUrl, publicId: videoKey } = await uploadToCloudinary(
+        selectedFile,
+        'video'
+      );
       setUploadProgress(50);
 
-      // Step 3: Get pre-signed URL for thumbnail upload
-      const thumbnailPresignedResponse = await fetch('/api/upload/presigned-url', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fileName: thumbnail.name,
-          contentType: thumbnail.type,
-          fileType: 'thumbnail'
-        }),
-      });
-
-      if (!thumbnailPresignedResponse.ok) {
-        const error = await thumbnailPresignedResponse.json();
-        throw new Error(error.message || 'Failed to generate thumbnail upload URL');
-      }
-
-      const { uploadUrl: thumbnailUploadUrl, key: thumbnailKey } = await thumbnailPresignedResponse.json();
-      setUploadProgress(60);
-
-      // Step 4: Upload thumbnail directly to iDrive E2
-      const thumbnailDirectUploadResponse = await fetch(thumbnailUploadUrl, {
-        method: 'PUT',
-        body: thumbnail,
-        headers: {
-          'Content-Type': thumbnail.type,
-        },
-      });
-
-      if (!thumbnailDirectUploadResponse.ok) {
-        throw new Error('Failed to upload thumbnail to storage');
-      }
-
+      // Step 2: Upload thumbnail directly to Cloudinary
+      const { secureUrl: thumbnailUrl } = await uploadToCloudinary(
+        thumbnail,
+        'thumbnail'
+      );
       setUploadProgress(75);
 
-      // Construct URLs for video and thumbnail
-      const videoUrl = `/api/videos/stream/${encodeURIComponent(videoKey)}`;
-      const thumbnailUrl = `/api/thumbnails/${encodeURIComponent(thumbnailKey)}`;
-
-      // Step 5: Create video record in database
+      // Step 3: Create video record in database
       const response = await fetch('/api/videos', {
         method: 'POST',
         headers: {

@@ -1,26 +1,16 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { Upload } from "@aws-sdk/lib-storage";
-import { Readable } from "stream";
+import { v2 as cloudinary } from "cloudinary";
 
-// iDrive E2 S3-compatible client configuration
-export const s3Client = new S3Client({
-  endpoint: process.env.IDRIVE_ENDPOINT || "",
-  region: process.env.IDRIVE_REGION || "us-east-1",
-  credentials: {
-    accessKeyId: process.env.IDRIVE_ACCESS_KEY || "",
-    secretAccessKey: process.env.IDRIVE_SECRET_KEY || "",
-  },
-  forcePathStyle: true, // Required for S3-compatible services
-  requestHandler: {
-    // Increase connection timeout to 5 minutes for large uploads
-    connectionTimeout: 300000,
-    requestTimeout: 300000,
-  },
+// Cloudinary configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
 });
 
-const BUCKET_NAME = process.env.IDRIVE_BUCKET || "";
-const CDN_URL = process.env.CLOUDFLARE_CDN_URL || process.env.IDRIVE_PUBLIC_URL || "";
+const VIDEO_FOLDER = "cineweave/videos";
+const THUMBNAIL_FOLDER = "cineweave/thumbnails";
+const AVATAR_FOLDER = "cineweave/avatars";
 
 export interface VideoUploadResult {
   videoUrl: string;
@@ -29,225 +19,174 @@ export interface VideoUploadResult {
   storageKey: string;
 }
 
+function folderForType(fileType: "video" | "thumbnail" | "avatar"): string {
+  if (fileType === "video") return VIDEO_FOLDER;
+  if (fileType === "avatar") return AVATAR_FOLDER;
+  return THUMBNAIL_FOLDER;
+}
+
+function resourceTypeForFile(fileType: "video" | "thumbnail" | "avatar"): "video" | "image" {
+  return fileType === "video" ? "video" : "image";
+}
+
 /**
- * Upload video to iDrive E2 storage
+ * Upload a buffer to Cloudinary and return the secure CDN URL + public_id.
+ */
+async function uploadBufferToCloudinary(
+  buffer: Buffer,
+  fileName: string,
+  fileType: "video" | "thumbnail" | "avatar",
+  contentType: string,
+): Promise<{ secureUrl: string; publicId: string }> {
+  const folder = folderForType(fileType);
+  const resourceType = resourceTypeForFile(fileType);
+
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type: resourceType,
+        use_filename: true,
+        unique_filename: true,
+        overwrite: false,
+      },
+      (error, result) => {
+        if (error || !result) {
+          console.error(`Cloudinary upload failed for ${fileName}:`, error);
+          return reject(error ?? new Error("Cloudinary upload failed"));
+        }
+        console.log(
+          `Cloudinary upload completed: ${result.public_id} (${(buffer.length / (1024 * 1024)).toFixed(2)} MB)`,
+        );
+        resolve({ secureUrl: result.secure_url, publicId: result.public_id });
+      },
+    );
+
+    uploadStream.end(buffer);
+  });
+}
+
+/**
+ * Upload video to Cloudinary storage (server-side, for fallback / smaller files).
  */
 export async function uploadVideoToStorage(
   buffer: Buffer,
   fileName: string,
-  contentType: string = "video/mp4"
+  contentType: string = "video/mp4",
 ): Promise<VideoUploadResult> {
-  const key = `videos/${Date.now()}-${fileName}`;
-  
-  console.log(`Starting upload to iDrive: ${key} (${(buffer.length / (1024 * 1024)).toFixed(2)} MB)`);
-  
-  const upload = new Upload({
-    client: s3Client,
-    params: {
-      Bucket: BUCKET_NAME,
-      Key: key,
-      Body: buffer,
-      ContentType: contentType,
-      CacheControl: "public, max-age=31536000", // 1 year cache for videos
-    },
-    queueSize: 4,
-    partSize: 1024 * 1024 * 5, // 5MB parts for better reliability
-    leavePartsOnError: false,
-  });
-
-  // Track upload progress
-  upload.on("httpUploadProgress", (progress) => {
-    if (progress.loaded && progress.total) {
-      const percentage = Math.round((progress.loaded / progress.total) * 100);
-      console.log(`Upload progress: ${percentage}% (${(progress.loaded / (1024 * 1024)).toFixed(2)} MB / ${(progress.total / (1024 * 1024)).toFixed(2)} MB)`);
-    }
-  });
-
-  try {
-    await upload.done();
-    console.log(`Upload completed successfully: ${key}`);
-  } catch (error) {
-    console.error(`Upload failed for ${key}:`, error);
-    throw error;
-  }
-  
-  // Return clean API URL instead of iDrive URL
-  const videoUrl = `/api/videos/stream/${encodeURIComponent(key)}`;
+  const { secureUrl, publicId } = await uploadBufferToCloudinary(
+    buffer,
+    fileName,
+    "video",
+    contentType,
+  );
 
   return {
-    videoUrl,
-    key,
-    storageKey: key,
+    videoUrl: secureUrl,
+    key: publicId,
+    storageKey: publicId,
   };
 }
 
 /**
- * Upload thumbnail to iDrive E2 storage
+ * Upload thumbnail to Cloudinary storage.
  */
 export async function uploadThumbnailToStorage(
   buffer: Buffer,
   fileName: string,
-  contentType: string = "image/jpeg"
+  contentType: string = "image/jpeg",
 ): Promise<string> {
-  const key = `thumbnails/${Date.now()}-${fileName}`;
-  
-  const command = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-    Body: buffer,
-    ContentType: contentType,
-    CacheControl: "public, max-age=31536000", // 1 year cache
-  });
-
-  await s3Client.send(command);
-  
-  // Return proxy API URL instead of direct iDrive URL (to avoid CORS issues)
-  const thumbnailUrl = `/api/thumbnails/${encodeURIComponent(key)}`;
-
-  return thumbnailUrl;
+  const isAvatar = fileName.startsWith("avatar-");
+  const { secureUrl } = await uploadBufferToCloudinary(
+    buffer,
+    fileName,
+    isAvatar ? "avatar" : "thumbnail",
+    contentType,
+  );
+  return secureUrl;
 }
 
 /**
- * Delete video from iDrive E2 storage
+ * Delete an asset from Cloudinary by its public_id.
  */
-export async function deleteVideoFromStorage(key: string): Promise<void> {
-  const command = new DeleteObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-  });
-
-  await s3Client.send(command);
+export async function deleteVideoFromStorage(
+  publicId: string,
+  resourceType: "video" | "image" = "video",
+): Promise<void> {
+  await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
 }
 
 /**
- * Upload video from stream (useful for large files)
- */
-export async function uploadVideoStream(
-  stream: Readable,
-  fileName: string,
-  contentType: string = "video/mp4"
-): Promise<VideoUploadResult> {
-  const key = `videos/${Date.now()}-${fileName}`;
-  
-  const upload = new Upload({
-    client: s3Client,
-    params: {
-      Bucket: BUCKET_NAME,
-      Key: key,
-      Body: stream,
-      ContentType: contentType,
-      CacheControl: "public, max-age=31536000",
-    },
-    queueSize: 4,
-    partSize: 1024 * 1024 * 10,
-  });
-
-  await upload.done();
-  
-  // Return clean API URL instead of iDrive URL
-  const videoUrl = `/api/videos/stream/${encodeURIComponent(key)}`;
-
-  return {
-    videoUrl,
-    key,
-    storageKey: key,
-  };
-}
-
-/**
- * Get video from iDrive E2 storage
- */
-export async function getVideoFromStorage(
-  key: string,
-  range?: string
-): Promise<{ stream: Readable; contentLength: number; contentType: string; contentRange?: string }> {
-  const command = new GetObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-    Range: range,
-  });
-
-  const response = await s3Client.send(command);
-
-  if (!response.Body) {
-    throw new Error("No video data returned from storage");
-  }
-
-  return {
-    stream: response.Body as Readable,
-    contentLength: response.ContentLength || 0,
-    contentType: response.ContentType || "video/mp4",
-    contentRange: response.ContentRange,
-  };
-}
-
-/**
- * Get thumbnail from iDrive E2 storage
- */
-export async function getThumbnailFromStorage(
-  key: string
-): Promise<{ stream: Readable; contentLength: number; contentType: string }> {
-  const command = new GetObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-  });
-
-  const response = await s3Client.send(command);
-
-  if (!response.Body) {
-    throw new Error("No thumbnail data returned from storage");
-  }
-
-  return {
-    stream: response.Body as Readable,
-    contentLength: response.ContentLength || 0,
-    contentType: response.ContentType || "image/jpeg",
-  };
-}
-
-/**
- * Check if storage is configured
+ * Check if Cloudinary storage is configured.
  */
 export function isStorageConfigured(): boolean {
   return !!(
-    process.env.IDRIVE_ENDPOINT &&
-    process.env.IDRIVE_ACCESS_KEY &&
-    process.env.IDRIVE_SECRET_KEY &&
-    process.env.IDRIVE_BUCKET
+    process.env.CLOUDINARY_CLOUD_NAME &&
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET
   );
 }
 
 /**
- * Generate pre-signed URL for direct upload to iDrive E2
- * This allows browser to upload directly without going through server RAM
+ * Generate a Cloudinary signed-upload payload that the browser uses to upload
+ * directly to Cloudinary, bypassing this server.
+ *
+ * The client should POST a multipart/form-data request to:
+ *   https://api.cloudinary.com/v1_1/<cloud_name>/<resource_type>/upload
+ * with fields: file, api_key, timestamp, signature, folder, (and any other signed params).
  */
 export async function generatePresignedUploadUrl(
   fileName: string,
   contentType: string = "video/mp4",
-  fileType: 'video' | 'thumbnail' = 'video'
-): Promise<{ uploadUrl: string; key: string; expiresIn: number }> {
-  const timestamp = Date.now();
-  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-  const key = fileType === 'video' 
-    ? `videos/${timestamp}-${sanitizedFileName}`
-    : `thumbnails/${timestamp}-${sanitizedFileName}`;
-  
-  const command = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-    ContentType: contentType,
-    CacheControl: "public, max-age=31536000",
-  });
+  fileType: "video" | "thumbnail" | "avatar" = "video",
+): Promise<{
+  uploadUrl: string;
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+  resourceType: "video" | "image";
+  // Kept for backward compatibility with previous iDrive flow:
+  key: string;
+  expiresIn: number;
+}> {
+  if (!isStorageConfigured()) {
+    throw new Error("Cloudinary storage is not configured");
+  }
 
-  // Generate URL valid for 1 hour
-  const expiresIn = 3600;
-  const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn });
+  const folder = folderForType(fileType);
+  const resourceType = resourceTypeForFile(fileType);
+  const timestamp = Math.floor(Date.now() / 1000);
 
-  console.log(`Generated pre-signed upload URL for: ${key} (expires in ${expiresIn}s)`);
+  // Only the params included in the signature must be sent by the client.
+  const paramsToSign: Record<string, string | number> = {
+    folder,
+    timestamp,
+  };
+
+  const signature = cloudinary.utils.api_sign_request(
+    paramsToSign,
+    process.env.CLOUDINARY_API_SECRET as string,
+  );
+
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME as string;
+  const apiKey = process.env.CLOUDINARY_API_KEY as string;
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+
+  console.log(
+    `Generated Cloudinary signed upload payload for ${fileName} -> ${folder} (${resourceType})`,
+  );
 
   return {
     uploadUrl,
-    key,
-    expiresIn
+    cloudName,
+    apiKey,
+    timestamp,
+    signature,
+    folder,
+    resourceType,
+    key: `${folder}/${fileName}`,
+    expiresIn: 3600,
   };
 }

@@ -4,7 +4,7 @@ import multer from "multer";
 import { storage } from "./storage";
 import { insertUserSchema, insertChannelSchema, insertVideoSchema, insertSpaceSchema, insertSubscriptionSchema, insertCommentSchema, insertLikeSchema, insertWatchHistorySchema, insertPlaylistSchema, insertPlaylistVideoSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { uploadVideoToStorage, uploadThumbnailToStorage, isStorageConfigured, getVideoFromStorage, getThumbnailFromStorage, generatePresignedUploadUrl } from "./videoStorage";
+import { uploadVideoToStorage, uploadThumbnailToStorage, isStorageConfigured, generatePresignedUploadUrl } from "./videoStorage";
 import "./types";
 
 // Configure multer for memory storage
@@ -458,67 +458,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stream video from iDrive E2 (proxy endpoint to hide iDrive URLs)
-  app.get("/api/videos/stream/:key", async (req, res) => {
-    try {
-      // Check storage configuration
-      if (!isStorageConfigured()) {
-        return res.status(503).json({ message: "Video storage not configured" });
-      }
-
-      const storageKey = decodeURIComponent(req.params.key);
-      const range = req.headers.range;
-
-      // Fetch video from iDrive E2
-      const videoData = await getVideoFromStorage(storageKey, range);
-
-      // Set response headers for video streaming
-      res.setHeader("Content-Type", videoData.contentType);
-      res.setHeader("Accept-Ranges", "bytes");
-
-      if (range && videoData.contentRange) {
-        // Partial content (for seeking)
-        res.status(206);
-        res.setHeader("Content-Range", videoData.contentRange);
-        res.setHeader("Content-Length", videoData.contentLength.toString());
-      } else {
-        // Full content
-        res.setHeader("Content-Length", videoData.contentLength.toString());
-      }
-
-      // Stream video to client
-      videoData.stream.pipe(res);
-    } catch (error: any) {
-      console.error("Error streaming video:", error);
-      res.status(500).json({ message: "Failed to stream video: " + error.message });
-    }
-  });
-
-  // Serve thumbnail from iDrive E2 (proxy endpoint to avoid CORS issues)
-  app.get("/api/thumbnails/:key", async (req, res) => {
-    try {
-      // Check storage configuration
-      if (!isStorageConfigured()) {
-        return res.status(503).json({ message: "Thumbnail storage not configured" });
-      }
-
-      const storageKey = decodeURIComponent(req.params.key);
-
-      // Fetch thumbnail from iDrive E2
-      const { stream, contentLength, contentType } = await getThumbnailFromStorage(storageKey);
-
-      // Set response headers
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Content-Length", contentLength.toString());
-      res.setHeader("Cache-Control", "public, max-age=31536000"); // 1 year cache
-
-      // Stream thumbnail to client
-      stream.pipe(res);
-    } catch (error: any) {
-      console.error("Error serving thumbnail:", error);
-      res.status(500).json({ message: "Failed to serve thumbnail: " + error.message });
-    }
-  });
+  // NOTE: Cloudinary serves videos and thumbnails directly via its global CDN
+  // (e.g. https://res.cloudinary.com/<cloud>/...) with native HTTP range support.
+  // No proxy stream/thumbnail endpoints are needed anymore.
 
   // Generate pre-signed URL for direct upload to iDrive E2
   // This bypasses server RAM limits, allowing large file uploads
@@ -544,20 +486,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "fileName is required" });
       }
 
-      // Generate pre-signed URL
-      const { uploadUrl, key, expiresIn } = await generatePresignedUploadUrl(
+      // Generate Cloudinary signed upload payload
+      const payload = await generatePresignedUploadUrl(
         fileName,
         contentType || "video/mp4",
-        fileType || "video"
+        (fileType as "video" | "thumbnail" | "avatar") || "video"
       );
 
-      console.log(`Generated pre-signed URL for ${userId}: ${key}`);
+      console.log(`Generated Cloudinary signed upload payload for ${userId}: ${payload.folder}`);
 
       res.json({
-        uploadUrl,
-        key,
-        expiresIn,
-        message: "Pre-signed URL generated successfully"
+        ...payload,
+        message: "Signed upload payload generated successfully"
       });
     } catch (error: any) {
       console.error("Error generating pre-signed URL:", error);
@@ -588,7 +528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check storage configuration
       if (!isStorageConfigured()) {
         return res.status(503).json({ 
-          message: "Video storage not configured. Please set up iDrive E2 credentials.",
+          message: "Video storage not configured. Please set up Cloudinary credentials.",
           configured: false
         });
       }
@@ -750,8 +690,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/storage/status", async (req, res) => {
     res.json({
       configured: isStorageConfigured(),
-      provider: "iDrive E2",
-      cdnEnabled: !!process.env.CLOUDFLARE_CDN_URL,
+      provider: "Cloudinary",
+      cdnEnabled: true,
       maxUploadSize: MAX_UPLOAD_SIZE,
       maxUploadSizeMB: Math.floor(MAX_UPLOAD_SIZE / (1024 * 1024))
     });
