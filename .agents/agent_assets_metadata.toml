@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "i7YM_hXCPSogddcOyfIaK"
+uri = "file://screenshots/new-player.jpg"
+type = "image"
+title = "New CineWeave Player — paused state with title bar"
