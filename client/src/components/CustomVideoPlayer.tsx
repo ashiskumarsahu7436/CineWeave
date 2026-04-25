@@ -32,6 +32,7 @@ import {
 
 interface CustomVideoPlayerProps {
   src: string;
+  title?: string;
   onPlay?: () => void;
   onError?: (e: React.SyntheticEvent<HTMLVideoElement, Event>) => void;
   videoRef?: React.RefObject<HTMLVideoElement>;
@@ -107,6 +108,7 @@ function formatTime(seconds: number): string {
 
 export default function CustomVideoPlayer({
   src,
+  title,
   onPlay,
   onError,
   videoRef: externalVideoRef,
@@ -569,7 +571,7 @@ export default function CustomVideoPlayer({
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full bg-black group select-none ${
+      className={`relative w-full h-full bg-black group select-none overflow-hidden ${
         controlsVisible ? "cursor-default" : "cursor-none"
       }`}
       onMouseMove={handleMouseMove}
@@ -583,304 +585,335 @@ export default function CustomVideoPlayer({
       <video
         ref={videoRef}
         src={effectiveSrc}
-        className="w-full h-full"
+        className="w-full h-full object-contain bg-black"
         playsInline
         onClick={handleVideoTap}
         onError={onError}
         data-testid="video-element"
       />
 
+      {/* Subtle vignette for cinematic feel */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_60%,rgba(0,0,0,0.35))]" />
+
       {/* Buffering spinner */}
       {isWaiting && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-          <Loader2 className="h-12 w-12 text-white animate-spin drop-shadow-lg" />
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full bg-white/5 backdrop-blur-md scale-150" />
+            <Loader2 className="relative h-10 w-10 sm:h-12 sm:w-12 text-white/95 animate-spin drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]" />
+          </div>
         </div>
       )}
 
-      {/* Play/Pause toast (center) */}
+      {/* Play / Pause flash on toggle (subtle, no big circle) */}
       {showPlayPauseAnimation && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-          <div className="bg-black/60 rounded-full p-4 sm:p-6 animate-in fade-in zoom-in duration-200">
+          <div className="rounded-full p-4 sm:p-5 bg-black/45 backdrop-blur-sm animate-in fade-in zoom-in-90 duration-300">
             {isPlaying ? (
-              <Play className="h-12 w-12 sm:h-16 sm:w-16 text-white" fill="white" />
+              <Play className="h-9 w-9 sm:h-12 sm:w-12 text-white drop-shadow-lg" fill="currentColor" />
             ) : (
-              <Pause className="h-12 w-12 sm:h-16 sm:w-16 text-white" fill="white" />
+              <Pause className="h-9 w-9 sm:h-12 sm:w-12 text-white drop-shadow-lg" fill="currentColor" />
             )}
           </div>
         </div>
       )}
 
-      {/* Skip flash (double-tap) */}
+      {/* Skip flash (double-tap zones) */}
       {skipFlash && (
         <div
           className={`absolute top-0 bottom-0 ${
             skipFlash === "left" ? "left-0 right-1/2" : "right-0 left-1/2"
           } flex items-center justify-center pointer-events-none z-10`}
         >
-          <div className="bg-black/40 rounded-full p-3 animate-in fade-in zoom-in duration-200">
+          <div className="flex flex-col items-center gap-1 bg-black/35 backdrop-blur-md rounded-2xl px-4 py-3 animate-in fade-in zoom-in-90 duration-200">
             {skipFlash === "left" ? (
-              <RotateCcw className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
+              <RotateCcw className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
             ) : (
-              <RotateCw className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
+              <RotateCw className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
             )}
+            <span className="text-white text-xs font-semibold tabular-nums">
+              {skipFlash === "left" ? "− 10s" : "+ 10s"}
+            </span>
           </div>
         </div>
       )}
 
-      {/* Big center play button (paused state) */}
+      {/* Center play button when paused — sleek glass, not solid white */}
       {!isPlaying && !showPlayPauseAnimation && !isWaiting && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <Button
-            size="lg"
-            className="pointer-events-auto h-20 w-20 rounded-full bg-white/90 hover:bg-white text-black transition-transform hover:scale-110"
+          <button
             onClick={(e) => {
               e.stopPropagation();
               togglePlay();
             }}
+            className="pointer-events-auto group/play relative h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-black/40 backdrop-blur-md ring-1 ring-white/25 hover:ring-white/50 hover:bg-black/55 shadow-[0_8px_30px_rgba(0,0,0,0.55)] transition-all duration-300 hover:scale-110 flex items-center justify-center"
             data-testid="button-play-center"
+            aria-label="Play"
           >
-            <Play className="h-10 w-10 ml-1" fill="currentColor" />
-          </Button>
+            <Play
+              className="h-6 w-6 sm:h-7 sm:w-7 text-white ml-[3px] drop-shadow-lg"
+              fill="currentColor"
+            />
+            <span className="absolute inset-0 rounded-full opacity-0 group-hover/play:opacity-100 transition-opacity bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.18),transparent_70%)]" />
+          </button>
         </div>
       )}
 
-      {/* Side skip buttons (always-visible quick controls) */}
+      {/* Top bar — title + safe-area gradient (only when controls visible) */}
       <div
-        className={`absolute inset-0 flex items-center justify-between px-4 sm:px-8 pointer-events-none transition-opacity duration-300 ${
-          controlsVisible ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <Button
-          variant="ghost"
-          size="icon"
-          className="pointer-events-auto h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm transition-all hover:scale-110"
-          onClick={(e) => {
-            e.stopPropagation();
-            seekBy(-10);
-          }}
-          title="Rewind 10 seconds (J)"
-          data-testid="button-skip-back"
-        >
-          <RotateCcw className="h-5 w-5 sm:h-6 sm:w-6" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="pointer-events-auto h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm transition-all hover:scale-110"
-          onClick={(e) => {
-            e.stopPropagation();
-            seekBy(10);
-          }}
-          title="Forward 10 seconds (L)"
-          data-testid="button-skip-forward"
-        >
-          <RotateCw className="h-5 w-5 sm:h-6 sm:w-6" />
-        </Button>
-      </div>
-
-      {/* Bottom controls */}
-      <div
-        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent px-2 sm:px-4 pb-2 sm:pb-3 pt-8 transition-opacity duration-300 ${
-          controlsVisible ? "opacity-100" : "opacity-0"
+        className={`absolute top-0 left-0 right-0 px-3 sm:px-5 pt-3 sm:pt-4 pb-10 bg-gradient-to-b from-black/65 via-black/25 to-transparent transition-all duration-300 z-10 ${
+          controlsVisible
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 -translate-y-2"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Progress bar */}
-        <div
-          ref={progressRef}
-          className="relative w-full h-1.5 sm:h-1 bg-white/25 rounded-full cursor-pointer mb-2 sm:mb-3 hover:h-2.5 sm:hover:h-2 transition-all group/progress touch-none"
-          onClick={handleProgressClick}
-          onMouseMove={handleProgressHover}
-          onMouseLeave={handleProgressLeave}
-          data-testid="progress-bar"
-        >
-          {/* Buffered */}
-          <div
-            className="absolute top-0 left-0 h-full bg-white/40 rounded-full"
-            style={{ width: `${buffered}%` }}
-          />
-          {/* Played */}
-          <div
-            className="absolute top-0 left-0 h-full bg-red-600 rounded-full"
-            style={{ width: `${progress}%` }}
-          >
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3.5 h-3.5 bg-red-600 rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity" />
-          </div>
+        {title && (
+          <h2 className="text-white text-sm sm:text-base md:text-lg font-semibold drop-shadow-md line-clamp-1 max-w-[90%]">
+            {title}
+          </h2>
+        )}
+      </div>
 
-          {/* Hover time tooltip */}
-          {hoverTime !== null && (
+      {/* Bottom controls — slim, glassy */}
+      <div
+        className={`absolute bottom-0 left-0 right-0 z-10 transition-all duration-300 ${
+          controlsVisible
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-2"
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Soft gradient under everything */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 sm:h-28 bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
+
+        {/* Progress bar */}
+        <div className="relative px-3 sm:px-5 pb-1">
+          <div
+            ref={progressRef}
+            className="relative w-full h-1 hover:h-1.5 bg-white/20 rounded-full cursor-pointer transition-all duration-150 group/progress touch-none"
+            onClick={handleProgressClick}
+            onMouseMove={handleProgressHover}
+            onMouseLeave={handleProgressLeave}
+            data-testid="progress-bar"
+          >
+            {/* Buffered */}
             <div
-              className="absolute bottom-full mb-2 -translate-x-1/2 px-2 py-1 rounded bg-black/85 text-white text-xs font-medium whitespace-nowrap pointer-events-none"
-              style={{ left: hoverX }}
+              className="absolute top-0 left-0 h-full bg-white/35 rounded-full"
+              style={{ width: `${buffered}%` }}
+            />
+            {/* Played */}
+            <div
+              className="absolute top-0 left-0 h-full bg-red-600 rounded-full"
+              style={{ width: `${progress}%` }}
             >
-              {formatTime(hoverTime)}
+              {/* Scrubber dot */}
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 bg-red-600 rounded-full opacity-0 group-hover/progress:opacity-100 scale-90 group-hover/progress:scale-100 transition-all shadow-[0_0_8px_rgba(239,68,68,0.7)]" />
             </div>
-          )}
+
+            {/* Hover time tooltip */}
+            {hoverTime !== null && (
+              <div
+                className="absolute bottom-full mb-2 -translate-x-1/2 px-2 py-0.5 rounded-md bg-black/90 text-white text-[11px] font-semibold whitespace-nowrap pointer-events-none ring-1 ring-white/10 tabular-nums"
+                style={{ left: hoverX }}
+              >
+                {formatTime(hoverTime)}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Buttons row */}
-        <div className="flex items-center justify-between text-white gap-1">
-          <div className="flex items-center gap-1 sm:gap-2">
-            {/* Play/Pause */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/20 h-10 w-10 sm:h-9 sm:w-9"
-              onClick={togglePlay}
-              data-testid="button-play-pause"
-              title={isPlaying ? "Pause (k)" : "Play (k)"}
+        <div className="relative flex items-center text-white gap-0.5 sm:gap-1 px-1 sm:px-3 pb-2 sm:pb-2.5 pt-1">
+          {/* Play / Pause */}
+          <button
+            onClick={togglePlay}
+            className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"
+            data-testid="button-play-pause"
+            title={isPlaying ? "Pause (k)" : "Play (k)"}
+            aria-label={isPlaying ? "Pause" : "Play"}
+          >
+            {isPlaying ? (
+              <Pause className="h-[18px] w-[18px]" fill="currentColor" />
+            ) : (
+              <Play className="h-[18px] w-[18px] ml-[1px]" fill="currentColor" />
+            )}
+          </button>
+
+          {/* Skip back / forward (compact, desktop) */}
+          <button
+            onClick={() => seekBy(-10)}
+            className="hidden sm:flex h-9 w-9 items-center justify-center rounded-full hover:bg-white/15 transition-colors"
+            title="Rewind 10s (J)"
+            aria-label="Rewind 10 seconds"
+            data-testid="button-skip-back"
+          >
+            <RotateCcw className="h-[17px] w-[17px]" />
+          </button>
+          <button
+            onClick={() => seekBy(10)}
+            className="hidden sm:flex h-9 w-9 items-center justify-center rounded-full hover:bg-white/15 transition-colors"
+            title="Forward 10s (L)"
+            aria-label="Forward 10 seconds"
+            data-testid="button-skip-forward"
+          >
+            <RotateCw className="h-[17px] w-[17px]" />
+          </button>
+
+          {/* Volume (desktop only — mobile uses system volume) */}
+          <div className="hidden sm:flex items-center group/volume ml-0.5">
+            <button
+              onClick={toggleMute}
+              className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"
+              data-testid="button-mute"
+              title={isMuted ? "Unmute (m)" : "Mute (m)"}
+              aria-label={isMuted ? "Unmute" : "Mute"}
             >
-              {isPlaying ? (
-                <Pause className="h-5 w-5" fill="currentColor" />
-              ) : (
-                <Play className="h-5 w-5" fill="currentColor" />
-              )}
-            </Button>
-
-            {/* Volume */}
-            <div className="hidden sm:flex items-center gap-1 group/volume">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-white hover:bg-white/20 h-9 w-9"
-                onClick={toggleMute}
-                data-testid="button-mute"
-                title={isMuted ? "Unmute (m)" : "Mute (m)"}
-              >
-                <VolumeIcon className="h-5 w-5" />
-              </Button>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={isMuted ? 0 : volume}
-                onChange={(e) => setVideoVolume(parseFloat(e.target.value))}
-                className="w-0 group-hover/volume:w-20 transition-all opacity-0 group-hover/volume:opacity-100 accent-white cursor-pointer"
-                data-testid="input-volume"
-              />
-            </div>
-
-            {/* Time */}
-            <span className="text-xs sm:text-sm whitespace-nowrap tabular-nums" data-testid="text-time">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
+              <VolumeIcon className="h-[18px] w-[18px]" />
+            </button>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.02"
+              value={isMuted ? 0 : volume}
+              onChange={(e) => setVideoVolume(parseFloat(e.target.value))}
+              className="w-0 group-hover/volume:w-24 ml-0 group-hover/volume:ml-1 mr-0 group-hover/volume:mr-1 transition-all duration-200 opacity-0 group-hover/volume:opacity-100 accent-white cursor-pointer h-1"
+              data-testid="input-volume"
+            />
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2">
-            {/* Picture-in-Picture */}
-            {typeof document !== "undefined" &&
-              (document as any).pictureInPictureEnabled && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`text-white hover:bg-white/20 h-10 w-10 sm:h-9 sm:w-9 ${
-                    isPip ? "bg-white/20" : ""
-                  }`}
-                  onClick={() => void togglePip()}
-                  data-testid="button-pip"
-                  title="Picture-in-Picture (i)"
-                >
-                  <PictureInPicture2 className="h-5 w-5" />
-                </Button>
-              )}
+          {/* Time */}
+          <span
+            className="text-[11px] sm:text-xs whitespace-nowrap tabular-nums ml-1 sm:ml-2 text-white/95"
+            data-testid="text-time"
+          >
+            {formatTime(currentTime)}{" "}
+            <span className="text-white/55">/ {formatTime(duration)}</span>
+          </span>
 
-            {/* Settings (speed + quality combined) */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-white hover:bg-white/20 h-10 w-10 sm:h-9 sm:w-9"
-                  data-testid="button-settings"
-                  title="Settings"
-                >
-                  <Settings className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Playback</DropdownMenuLabel>
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="flex items-center justify-between">
-                    <span>Speed</span>
-                    <span className="text-xs text-muted-foreground ml-auto mr-2">
-                      {playbackRate === 1 ? "Normal" : `${playbackRate}x`}
-                    </span>
-                    <ChevronRight className="h-4 w-4 opacity-60" />
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent>
-                      {PLAYBACK_RATES.map((rate) => (
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Picture-in-Picture */}
+          {typeof document !== "undefined" &&
+            (document as any).pictureInPictureEnabled && (
+              <button
+                onClick={() => void togglePip()}
+                className={`hidden sm:flex h-9 w-9 items-center justify-center rounded-full hover:bg-white/15 transition-colors ${
+                  isPip ? "bg-white/15" : ""
+                }`}
+                data-testid="button-pip"
+                title="Picture-in-Picture (i)"
+                aria-label="Picture in Picture"
+              >
+                <PictureInPicture2 className="h-[17px] w-[17px]" />
+              </button>
+            )}
+
+          {/* Settings */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"
+                data-testid="button-settings"
+                title="Settings"
+                aria-label="Settings"
+              >
+                <Settings className="h-[18px] w-[18px]" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              side="top"
+              sideOffset={12}
+              className="w-60 bg-zinc-900/95 backdrop-blur-md border-white/10 text-white"
+            >
+              <DropdownMenuLabel className="text-white/60 text-[11px] uppercase tracking-wider font-medium">
+                Playback
+              </DropdownMenuLabel>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="flex items-center justify-between focus:bg-white/10 data-[state=open]:bg-white/10">
+                  <span>Speed</span>
+                  <span className="text-xs text-white/60 ml-auto mr-2">
+                    {playbackRate === 1 ? "Normal" : `${playbackRate}x`}
+                  </span>
+                  <ChevronRight className="h-4 w-4 opacity-60" />
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent className="bg-zinc-900/95 backdrop-blur-md border-white/10 text-white">
+                    {PLAYBACK_RATES.map((rate) => (
+                      <DropdownMenuItem
+                        key={rate}
+                        onClick={() => changePlaybackRate(rate)}
+                        className="flex items-center justify-between focus:bg-white/10"
+                        data-testid={`menu-speed-${rate}`}
+                      >
+                        <span>{rate === 1 ? "Normal" : `${rate}x`}</span>
+                        {playbackRate === rate && (
+                          <Check className="h-4 w-4 text-red-500" />
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="flex items-center justify-between focus:bg-white/10 data-[state=open]:bg-white/10">
+                  <span>Quality</span>
+                  <span className="text-xs text-white/60 ml-auto mr-2">
+                    {quality}
+                  </span>
+                  <ChevronRight className="h-4 w-4 opacity-60" />
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent className="bg-zinc-900/95 backdrop-blur-md border-white/10 text-white">
+                    {(["Auto", "1080p", "720p", "480p", "360p"] as Quality[]).map(
+                      (q) => (
                         <DropdownMenuItem
-                          key={rate}
-                          onClick={() => changePlaybackRate(rate)}
-                          className="flex items-center justify-between"
-                          data-testid={`menu-speed-${rate}`}
+                          key={q}
+                          onClick={() => changeQuality(q)}
+                          className="flex items-center justify-between focus:bg-white/10"
+                          data-testid={`menu-quality-${q}`}
                         >
-                          <span>{rate === 1 ? "Normal" : `${rate}x`}</span>
-                          {playbackRate === rate && (
-                            <Check className="h-4 w-4 text-primary" />
+                          <span>{q}</span>
+                          {quality === q && (
+                            <Check className="h-4 w-4 text-red-500" />
                           )}
                         </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
+                      ),
+                    )}
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
 
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="flex items-center justify-between">
-                    <span>Quality</span>
-                    <span className="text-xs text-muted-foreground ml-auto mr-2">
-                      {quality}
-                    </span>
-                    <ChevronRight className="h-4 w-4 opacity-60" />
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent>
-                      {(["Auto", "1080p", "720p", "480p", "360p"] as Quality[]).map(
-                        (q) => (
-                          <DropdownMenuItem
-                            key={q}
-                            onClick={() => changeQuality(q)}
-                            className="flex items-center justify-between"
-                            data-testid={`menu-quality-${q}`}
-                          >
-                            <span>{q}</span>
-                            {quality === q && (
-                              <Check className="h-4 w-4 text-primary" />
-                            )}
-                          </DropdownMenuItem>
-                        ),
-                      )}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
+              <DropdownMenuSeparator className="bg-white/10" />
+              <div className="px-2 py-1.5 text-[10.5px] leading-relaxed text-white/55">
+                <div className="font-semibold text-white/70 mb-0.5">Shortcuts</div>
+                Space / K — play · J / L — ±10s · ← / → — ±5s
+                <br />
+                ↑ / ↓ — volume · M — mute · F — fullscreen
+                <br />
+                I — PiP · &lt; / &gt; — speed · 0–9 — jump
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-                  Shortcuts: Space/K play · J/L ±10s · ←/→ ±5s · ↑/↓ vol · M
-                  mute · F fullscreen · I PiP · 0–9 jump
-                </DropdownMenuLabel>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Fullscreen */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/20 h-10 w-10 sm:h-9 sm:w-9"
-              onClick={toggleFullscreen}
-              data-testid="button-fullscreen"
-              title={isFullscreen ? "Exit fullscreen (f)" : "Fullscreen (f)"}
-            >
-              {isFullscreen ? (
-                <Minimize className="h-5 w-5" />
-              ) : (
-                <Maximize className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
+          {/* Fullscreen */}
+          <button
+            onClick={toggleFullscreen}
+            className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"
+            data-testid="button-fullscreen"
+            title={isFullscreen ? "Exit fullscreen (f)" : "Fullscreen (f)"}
+            aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          >
+            {isFullscreen ? (
+              <Minimize className="h-[18px] w-[18px]" />
+            ) : (
+              <Maximize className="h-[18px] w-[18px]" />
+            )}
+          </button>
         </div>
       </div>
     </div>

@@ -721,6 +721,7 @@ export default function Watch() {
           <div className="aspect-video bg-black sm:rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
             <CustomVideoPlayer
               src={video.videoUrl}
+              title={video.title}
               videoRef={videoRef}
               onPlay={handleVideoPlay}
               onError={(e) => {
