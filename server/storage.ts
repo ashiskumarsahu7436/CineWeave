@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type UpsertUser, type Channel, type InsertChannel, type Video, type InsertVideo, type Space, type InsertSpace, type Subscription, type InsertSubscription, type Comment, type InsertComment, type Like, type InsertLike, type WatchHistory, type InsertWatchHistory, type Playlist, type InsertPlaylist, type PlaylistVideo, type InsertPlaylistVideo, type Notification, type InsertNotification, type VideoWithChannel, type SpaceWithChannels } from "@shared/schema";
+import { type User, type InsertUser, type UpsertUser, type Channel, type InsertChannel, type Video, type InsertVideo, type Space, type InsertSpace, type Subscription, type InsertSubscription, type Comment, type InsertComment, type Like, type InsertLike, type WatchHistory, type InsertWatchHistory, type WatchLater, type InsertWatchLater, type Feedback, type InsertFeedback, type WatchHistoryWithVideo, type WatchLaterWithVideo, type SearchVideoFilters, type Playlist, type InsertPlaylist, type PlaylistVideo, type InsertPlaylistVideo, type Notification, type InsertNotification, type VideoWithChannel, type SpaceWithChannels } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -27,7 +27,7 @@ export interface IStorage {
   createVideo(video: InsertVideo): Promise<Video>;
   updateVideo(id: string, updates: Partial<Video>): Promise<Video | undefined>;
   deleteVideo(id: string): Promise<boolean>;
-  searchVideos(query: string): Promise<VideoWithChannel[]>;
+  searchVideos(query: string, filters?: SearchVideoFilters): Promise<VideoWithChannel[]>;
   incrementViewCount(videoId: string): Promise<boolean>;
 
   // Space methods
@@ -65,7 +65,19 @@ export interface IStorage {
   // Watch History methods
   addToWatchHistory(history: InsertWatchHistory): Promise<WatchHistory>;
   getWatchHistory(userId: string, limit?: number, offset?: number): Promise<WatchHistory[]>;
+  getWatchHistoryWithVideos(userId: string, limit?: number, offset?: number): Promise<WatchHistoryWithVideo[]>;
+  removeFromWatchHistory(userId: string, videoId: string): Promise<boolean>;
   clearWatchHistory(userId: string): Promise<boolean>;
+
+  // Watch Later methods
+  addToWatchLater(item: InsertWatchLater): Promise<WatchLater>;
+  getWatchLaterWithVideos(userId: string): Promise<WatchLaterWithVideo[]>;
+  isInWatchLater(userId: string, videoId: string): Promise<boolean>;
+  removeFromWatchLater(userId: string, videoId: string): Promise<boolean>;
+  clearWatchLater(userId: string): Promise<boolean>;
+
+  // Feedback methods
+  createFeedback(item: InsertFeedback): Promise<Feedback>;
 
   // Playlist methods
   getPlaylist(id: string): Promise<Playlist | undefined>;
@@ -85,7 +97,7 @@ export interface IStorage {
   getUnreadCount(userId: string): Promise<number>;
 }
 
-export class MemStorage implements IStorage {
+export class MemStorage {
   private users: Map<string, User> = new Map();
   private channels: Map<string, Channel> = new Map();
   private videos: Map<string, Video> = new Map();
@@ -126,6 +138,8 @@ export class MemStorage implements IStorage {
       id, 
       personalMode: false, 
       blockedChannels: [],
+      language: insertUser.language ?? null,
+      country: insertUser.country ?? null,
       username: insertUser.username ?? null,
       email: insertUser.email ?? null,
       password: insertUser.password ?? null,
@@ -399,6 +413,8 @@ export class MemStorage implements IStorage {
       profileImageUrl: userData.profileImageUrl ?? null,
       personalMode: userData.personalMode ?? false, 
       blockedChannels: userData.blockedChannels ?? [],
+      language: (userData as any).language ?? null,
+      country: (userData as any).country ?? null,
       authProvider: userData.authProvider ?? "email",
       oauthId: userData.oauthId ?? null,
       isVerified: userData.isVerified ?? false,
@@ -603,8 +619,8 @@ export class MemStorage implements IStorage {
 }
 
 import { db } from "./db";
-import { users, channels, videos, spaces, subscriptions, comments, likes, watchHistory, playlists, playlistVideos, notifications } from "@shared/schema";
-import { eq, and, or, ilike, inArray, sql, desc, isNull } from "drizzle-orm";
+import { users, channels, videos, spaces, subscriptions, comments, likes, watchHistory, watchLater, feedback, playlists, playlistVideos, notifications } from "@shared/schema";
+import { eq, and, or, ilike, inArray, sql, desc, isNull, gte } from "drizzle-orm";
 
 export class DbStorage implements IStorage {
   private normalizeArray<T>(result: T[] | null): T[] {
@@ -788,21 +804,58 @@ export class DbStorage implements IStorage {
     return result.length > 0;
   }
 
-  async searchVideos(query: string): Promise<VideoWithChannel[]> {
-    const results = await db
-      .select({
-        video: videos,
-        channel: channels,
-      })
+  async searchVideos(query: string, filters?: SearchVideoFilters): Promise<VideoWithChannel[]> {
+    const conditions: any[] = [
+      or(
+        ilike(videos.title, `%${query}%`),
+        ilike(videos.description, `%${query}%`)
+      )
+    ];
+
+    // Upload date filter
+    if (filters?.uploaded && filters.uploaded !== 'any') {
+      const now = new Date();
+      let cutoff: Date | null = null;
+      switch (filters.uploaded) {
+        case 'hour':  cutoff = new Date(now.getTime() - 60 * 60 * 1000); break;
+        case 'today': cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000); break;
+        case 'week':  cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
+        case 'month': cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
+        case 'year':  cutoff = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000); break;
+      }
+      if (cutoff) conditions.push(gte(videos.uploadedAt, cutoff));
+    }
+
+    // Sort
+    let orderClause: any = desc(videos.uploadedAt);
+    if (filters?.sort === 'date') orderClause = desc(videos.uploadedAt);
+    else if (filters?.sort === 'views') orderClause = desc(videos.views);
+    // 'relevance' falls back to uploadedAt for now
+
+    let results = await db
+      .select({ video: videos, channel: channels })
       .from(videos)
       .innerJoin(channels, eq(videos.channelId, channels.id))
-      .where(
-        or(
-          ilike(videos.title, `%${query}%`),
-          ilike(videos.description, `%${query}%`)
-        )
-      )
-      .orderBy(sql`${videos.uploadedAt} DESC`);
+      .where(and(...conditions))
+      .orderBy(orderClause);
+
+    // Duration filter — applied in app since duration is stored as text "mm:ss" or "hh:mm:ss"
+    if (filters?.duration && filters.duration !== 'any') {
+      const toSeconds = (d: string | null | undefined): number => {
+        if (!d) return 0;
+        const parts = d.split(':').map(p => parseInt(p, 10) || 0);
+        if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+        if (parts.length === 2) return parts[0] * 60 + parts[1];
+        return parts[0] || 0;
+      };
+      results = results.filter(r => {
+        const secs = toSeconds(r.video.duration);
+        if (filters.duration === 'short') return secs < 240;
+        if (filters.duration === 'medium') return secs >= 240 && secs <= 1200;
+        if (filters.duration === 'long') return secs > 1200;
+        return true;
+      });
+    }
 
     return results.map(r => ({ ...r.video, channel: r.channel }));
   }
@@ -1116,6 +1169,91 @@ export class DbStorage implements IStorage {
   async clearWatchHistory(userId: string): Promise<boolean> {
     const result = await db.delete(watchHistory).where(eq(watchHistory.userId, userId)).returning();
     return result.length > 0;
+  }
+
+  async getWatchHistoryWithVideos(userId: string, limit: number = 50, offset: number = 0): Promise<WatchHistoryWithVideo[]> {
+    try {
+      const rows = await db
+        .select({ history: watchHistory, video: videos, channel: channels })
+        .from(watchHistory)
+        .innerJoin(videos, eq(watchHistory.videoId, videos.id))
+        .innerJoin(channels, eq(videos.channelId, channels.id))
+        .where(eq(watchHistory.userId, userId))
+        .orderBy(desc(watchHistory.watchedAt))
+        .limit(limit)
+        .offset(offset);
+      return rows.map(r => ({ ...r.history, video: { ...r.video, channel: r.channel } }));
+    } catch (error) {
+      if (this.isNeonNullError(error)) return [];
+      throw error;
+    }
+  }
+
+  async removeFromWatchHistory(userId: string, videoId: string): Promise<boolean> {
+    const result = await db
+      .delete(watchHistory)
+      .where(and(eq(watchHistory.userId, userId), eq(watchHistory.videoId, videoId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async addToWatchLater(item: InsertWatchLater): Promise<WatchLater> {
+    const result = await db
+      .insert(watchLater)
+      .values(item)
+      .onConflictDoNothing()
+      .returning();
+    if (result[0]) return result[0];
+    // Already exists — fetch and return existing
+    const existing = await db
+      .select()
+      .from(watchLater)
+      .where(and(eq(watchLater.userId, item.userId), eq(watchLater.videoId, item.videoId)))
+      .limit(1);
+    return existing[0];
+  }
+
+  async getWatchLaterWithVideos(userId: string): Promise<WatchLaterWithVideo[]> {
+    try {
+      const rows = await db
+        .select({ wl: watchLater, video: videos, channel: channels })
+        .from(watchLater)
+        .innerJoin(videos, eq(watchLater.videoId, videos.id))
+        .innerJoin(channels, eq(videos.channelId, channels.id))
+        .where(eq(watchLater.userId, userId))
+        .orderBy(desc(watchLater.addedAt));
+      return rows.map(r => ({ ...r.wl, video: { ...r.video, channel: r.channel } }));
+    } catch (error) {
+      if (this.isNeonNullError(error)) return [];
+      throw error;
+    }
+  }
+
+  async isInWatchLater(userId: string, videoId: string): Promise<boolean> {
+    const result = await db
+      .select({ id: watchLater.id })
+      .from(watchLater)
+      .where(and(eq(watchLater.userId, userId), eq(watchLater.videoId, videoId)))
+      .limit(1);
+    return result.length > 0;
+  }
+
+  async removeFromWatchLater(userId: string, videoId: string): Promise<boolean> {
+    const result = await db
+      .delete(watchLater)
+      .where(and(eq(watchLater.userId, userId), eq(watchLater.videoId, videoId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async clearWatchLater(userId: string): Promise<boolean> {
+    const result = await db.delete(watchLater).where(eq(watchLater.userId, userId)).returning();
+    return result.length > 0;
+  }
+
+  async createFeedback(item: InsertFeedback): Promise<Feedback> {
+    const result = await db.insert(feedback).values(item).returning();
+    return result[0];
   }
 
   async getPlaylist(id: string): Promise<Playlist | undefined> {

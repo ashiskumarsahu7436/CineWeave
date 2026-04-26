@@ -127,6 +127,54 @@ export default function Watch() {
     }
   });
 
+  const trackHistoryMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/watch-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ videoId }),
+      });
+      if (!response.ok) throw new Error('Failed to record watch history');
+      return response.json();
+    },
+  });
+
+  const { data: watchLaterStatus } = useQuery<{ inWatchLater: boolean }>({
+    queryKey: ['/api/watch-later/check', videoId],
+    queryFn: async () => {
+      const res = await fetch(`/api/watch-later/check/${videoId}`, { credentials: 'include' });
+      if (!res.ok) return { inWatchLater: false };
+      return res.json();
+    },
+    enabled: !!videoId && !!currentUserId,
+  });
+
+  const watchLaterMutation = useMutation({
+    mutationFn: async () => {
+      if (watchLaterStatus?.inWatchLater) {
+        const res = await fetch(`/api/watch-later/${videoId}`, { method: 'DELETE', credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to remove from Watch Later');
+      } else {
+        const res = await fetch('/api/watch-later', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ videoId }),
+        });
+        if (!res.ok) throw new Error('Failed to add to Watch Later');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/watch-later/check', videoId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/watch-later'] });
+      toast({
+        title: watchLaterStatus?.inWatchLater ? 'Removed from Watch Later' : 'Saved to Watch Later',
+      });
+    },
+    onError: () => toast({ title: 'Could not update Watch Later', variant: 'destructive' }),
+  });
+
   const likeMutation = useMutation({
     mutationFn: async (type: 'like' | 'dislike') => {
       const response = await fetch(`/api/videos/${videoId}/like`, {
@@ -430,6 +478,9 @@ export default function Watch() {
   const handleVideoPlay = () => {
     if (!hasTrackedView && videoId) {
       trackViewMutation.mutate();
+      if (currentUserId) {
+        trackHistoryMutation.mutate();
+      }
       setHasTrackedView(true);
     }
   };
@@ -828,14 +879,32 @@ export default function Watch() {
                     <span className="font-semibold text-sm">Share</span>
                   </Button>
                   
+                  <Button
+                    variant={watchLaterStatus?.inWatchLater ? "default" : "secondary"}
+                    size="sm"
+                    className="rounded-full h-11 sm:h-auto px-5 py-2.5 sm:px-5 sm:py-2 transition-all shadow-sm flex-shrink-0"
+                    onClick={() => {
+                      if (!currentUserId) {
+                        toast({ title: 'Please log in', description: 'You must be logged in to save videos', variant: 'destructive' });
+                        return;
+                      }
+                      watchLaterMutation.mutate();
+                    }}
+                    disabled={watchLaterMutation.isPending}
+                    data-testid="button-watch-later"
+                  >
+                    <Clock className="h-5 w-5 sm:h-4 sm:w-4 mr-2" />
+                    <span className="font-semibold text-sm">{watchLaterStatus?.inWatchLater ? 'Saved' : 'Watch later'}</span>
+                  </Button>
+
                   <Button 
                     variant="secondary" 
                     size="sm" 
                     className="rounded-full h-11 sm:h-auto px-5 py-2.5 sm:px-5 sm:py-2 hover:bg-secondary/80 transition-all shadow-sm flex-shrink-0"
                     onClick={handleSave}
+                    data-testid="button-save-playlist"
                   >
-                    <Clock className="h-5 w-5 sm:h-4 sm:w-4 mr-2" />
-                    <span className="font-semibold text-sm">Save</span>
+                    <span className="font-semibold text-sm">Save to playlist</span>
                   </Button>
                   
                   <Button variant="secondary" size="sm" className="rounded-full h-11 sm:h-auto px-4 py-2.5 sm:py-2 hover:bg-secondary/80 transition-all shadow-sm flex-shrink-0">

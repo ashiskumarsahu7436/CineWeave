@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import { storage } from "./storage";
-import { insertUserSchema, insertChannelSchema, insertVideoSchema, insertSpaceSchema, insertSubscriptionSchema, insertCommentSchema, insertLikeSchema, insertWatchHistorySchema, insertPlaylistSchema, insertPlaylistVideoSchema } from "@shared/schema";
+import { insertUserSchema, insertChannelSchema, insertVideoSchema, insertSpaceSchema, insertSubscriptionSchema, insertCommentSchema, insertLikeSchema, insertWatchHistorySchema, insertWatchLaterSchema, insertFeedbackSchema, insertPlaylistSchema, insertPlaylistVideoSchema, type SearchVideoFilters, type SearchSort, type SearchDuration, type SearchUploaded } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { uploadVideoToStorage, uploadThumbnailToStorage, isStorageConfigured, generatePresignedUploadUrl } from "./videoStorage";
 import "./types";
@@ -197,9 +197,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/users/:id", async (req, res) => {
+  app.patch("/api/users/:id", async (req: any, res) => {
     try {
-      const user = await storage.updateUser(req.params.id, req.body);
+      const userId = getUserIdFromRequest(req);
+      if (!userId || userId !== req.params.id) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      // Only allow specific safe fields
+      const allowed: any = {};
+      const fields = ['firstName', 'lastName', 'username', 'profileImageUrl', 'language', 'country'] as const;
+      for (const f of fields) {
+        if (typeof req.body?.[f] === 'string') allowed[f] = req.body[f];
+      }
+      const user = await storage.updateUser(req.params.id, allowed);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -379,12 +389,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/videos/search", async (req, res) => {
     try {
-      const { q } = req.query;
+      const { q, sort, duration, uploaded } = req.query;
       if (!q) {
         return res.status(400).json({ message: "Search query required" });
       }
       const userId = getUserIdFromRequest(req);
-      const allVideos = await storage.searchVideos(q as string);
+      const filters: SearchVideoFilters = {
+        sort: ['relevance', 'date', 'views'].includes(sort as string) ? (sort as SearchSort) : undefined,
+        duration: ['any', 'short', 'medium', 'long'].includes(duration as string) ? (duration as SearchDuration) : undefined,
+        uploaded: ['any', 'hour', 'today', 'week', 'month', 'year'].includes(uploaded as string) ? (uploaded as SearchUploaded) : undefined,
+      };
+      const allVideos = await storage.searchVideos(q as string, filters);
       
       // Filter search results:
       // - Public videos: visible to everyone
@@ -956,6 +971,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Path-style alias used by ShortsPlayer
+  app.delete("/api/subscriptions/:channelId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const unsubscribed = await storage.unsubscribe(userId, req.params.channelId);
+      if (!unsubscribed) {
+        return res.status(404).json({ message: "Subscription not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Subscription status check used by ShortsPlayer
+  app.get("/api/subscriptions/:channelId/status", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) {
+        return res.json({ isSubscribed: false });
+      }
+      const isSubscribed = await storage.isSubscribed(userId, req.params.channelId);
+      res.json({ isSubscribed });
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Blocking routes
   app.post("/api/users/:userId/block", isAuthenticated, async (req: any, res) => {
     try {
@@ -1083,8 +1129,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/comments/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const comment = await storage.getComment(req.params.id);
-      if (!comment || comment.userId !== req.user.claims.sub) {
+      if (!comment || comment.userId !== userId) {
         return res.status(403).json({ message: "Forbidden" });
       }
       const deleted = await storage.deleteComment(req.params.id);
@@ -1112,7 +1162,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Like routes
   app.post("/api/videos/:videoId/like", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserIdFromRequest(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const likeData = insertLikeSchema.parse({
         ...req.body,
         userId,
@@ -1122,6 +1175,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(result);
     } catch (error) {
       res.status(400).json({ message: "Invalid like data" });
+    }
+  });
+
+  // Aggregated stats endpoint used by ShortsPlayer
+  app.get("/api/videos/:videoId/stats", async (req, res) => {
+    try {
+      const counts = await storage.getLikeCounts(req.params.videoId);
+      const comments = await storage.getCommentsByVideo(req.params.videoId);
+      res.json({
+        likes: counts.likes,
+        dislikes: counts.dislikes,
+        comments: comments.length,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Like-status endpoint for current authenticated user
+  app.get("/api/videos/:videoId/like-status", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) {
+        return res.json({ hasLiked: false, hasDisliked: false });
+      }
+      const userLike = await storage.getUserLike(userId, req.params.videoId);
+      res.json({
+        hasLiked: userLike?.type === 'like',
+        hasDisliked: userLike?.type === 'dislike',
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
@@ -1146,7 +1231,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Watch history routes
   app.post("/api/watch-history", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserIdFromRequest(req);
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       const historyData = insertWatchHistorySchema.parse({ ...req.body, userId });
       const history = await storage.addToWatchHistory(historyData);
       res.status(201).json(history);
@@ -1155,10 +1243,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/watch-history/:userId", async (req, res) => {
+  app.get("/api/watch-history/:userId", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId || userId !== req.params.userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
       const { limit, offset } = req.query;
-      const history = await storage.getWatchHistory(
+      const history = await storage.getWatchHistoryWithVideos(
         req.params.userId,
         limit ? parseInt(limit as string) : undefined,
         offset ? parseInt(offset as string) : undefined
@@ -1169,12 +1261,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/watch-history/:userId", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/watch-history/:userId/:videoId", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const cleared = await storage.clearWatchHistory(userId);
-      if (!cleared) {
-        return res.status(404).json({ message: "No watch history found" });
+      const userId = getUserIdFromRequest(req);
+      if (!userId || userId !== req.params.userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      const removed = await storage.removeFromWatchHistory(userId, req.params.videoId);
+      if (!removed) {
+        return res.status(404).json({ message: "Not found" });
       }
       res.status(204).send();
     } catch (error) {
@@ -1182,10 +1277,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/watch-history/:userId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId || userId !== req.params.userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      await storage.clearWatchHistory(userId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Watch Later routes
+  app.post("/api/watch-later", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const data = insertWatchLaterSchema.parse({ ...req.body, userId });
+      const item = await storage.addToWatchLater(data);
+      res.status(201).json(item);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid watch later data" });
+    }
+  });
+
+  app.get("/api/watch-later", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const items = await storage.getWatchLaterWithVideos(userId);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/watch-later/check/:videoId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) return res.json({ inWatchLater: false });
+      const inWatchLater = await storage.isInWatchLater(userId, req.params.videoId);
+      res.json({ inWatchLater });
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/watch-later/:videoId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const removed = await storage.removeFromWatchLater(userId, req.params.videoId);
+      if (!removed) return res.status(404).json({ message: "Not found" });
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/watch-later", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      await storage.clearWatchLater(userId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Feedback route
+  app.post("/api/feedback", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      const data = insertFeedbackSchema.parse({ ...req.body, userId: userId || null });
+      if (!data.message || data.message.trim().length < 5) {
+        return res.status(400).json({ message: "Feedback message too short" });
+      }
+      const fb = await storage.createFeedback(data);
+      res.status(201).json(fb);
+    } catch (error: any) {
+      res.status(400).json({ message: "Invalid feedback data" });
+    }
+  });
+
   // Playlist routes
   app.post("/api/playlists", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserIdFromRequest(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
       const playlistData = insertPlaylistSchema.parse({ ...req.body, userId });
       const playlist = await storage.createPlaylist(playlistData);
       res.status(201).json(playlist);
@@ -1194,8 +1376,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/playlists/:userId", async (req, res) => {
+  app.get("/api/playlists/:userId", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId || userId !== req.params.userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
       const playlists = await storage.getPlaylistsByUser(req.params.userId);
       res.json(playlists);
     } catch (error) {
@@ -1205,11 +1391,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/playlists/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
       const playlist = await storage.getPlaylist(req.params.id);
-      if (!playlist || playlist.userId !== req.user.claims.sub) {
+      if (!playlist || playlist.userId !== userId) {
         return res.status(403).json({ message: "Forbidden" });
       }
-      const updatedPlaylist = await storage.updatePlaylist(req.params.id, req.body);
+      const allowed: any = {};
+      if (typeof req.body.name === 'string') allowed.name = req.body.name;
+      if (typeof req.body.description === 'string') allowed.description = req.body.description;
+      if (typeof req.body.isPublic === 'boolean') allowed.isPublic = req.body.isPublic;
+      const updatedPlaylist = await storage.updatePlaylist(req.params.id, allowed);
       if (!updatedPlaylist) {
         return res.status(404).json({ message: "Playlist not found" });
       }
@@ -1221,8 +1413,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/playlists/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
       const playlist = await storage.getPlaylist(req.params.id);
-      if (!playlist || playlist.userId !== req.user.claims.sub) {
+      if (!playlist || playlist.userId !== userId) {
         return res.status(403).json({ message: "Forbidden" });
       }
       const deleted = await storage.deletePlaylist(req.params.id);
@@ -1237,21 +1431,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/playlists/:id/videos", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const playlist = await storage.getPlaylist(req.params.id);
+      if (!playlist || playlist.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
       const playlistVideoData = insertPlaylistVideoSchema.parse({
         ...req.body,
         playlistId: req.params.id
       });
       const playlistVideo = await storage.addVideoToPlaylist(playlistVideoData);
       res.status(201).json(playlistVideo);
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.code === '23505') {
+        return res.status(409).json({ message: "Video already in playlist" });
+      }
       res.status(400).json({ message: "Invalid playlist video data" });
     }
   });
 
   app.delete("/api/playlists/:playlistId/videos/:videoId", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
       const playlist = await storage.getPlaylist(req.params.playlistId);
-      if (!playlist || playlist.userId !== req.user.claims.sub) {
+      if (!playlist || playlist.userId !== userId) {
         return res.status(403).json({ message: "Forbidden" });
       }
       const removed = await storage.removeVideoFromPlaylist(req.params.playlistId, req.params.videoId);

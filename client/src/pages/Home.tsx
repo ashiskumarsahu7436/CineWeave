@@ -22,7 +22,7 @@ const categoryFilters = [
 ];
 
 export default function Home() {
-  const { personalMode, searchQuery, currentUserId } = useAppStore();
+  const { personalMode, currentUserId } = useAppStore();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [activeCategory, setActiveCategory] = useState("");
@@ -43,15 +43,11 @@ export default function Home() {
 
   // Removed auto-popup for better UX - users can create channel from AccountMenu
 
-  // Fetch videos based on personal mode and search query
+  // Fetch videos based on personal mode and category (search handled by /search page)
   const { data: videos = [], isLoading: videosLoading } = useQuery<VideoWithChannel[]>({
-    queryKey: ["/api/videos", { personalMode, searchQuery, category: activeCategory }],
+    queryKey: ["/api/videos", { personalMode, category: activeCategory }],
     queryFn: async () => {
-      if (searchQuery) {
-        const response = await fetch(`/api/videos/search?q=${encodeURIComponent(searchQuery)}`);
-        if (!response.ok) throw new Error('Failed to search videos');
-        return response.json();
-      } else if (personalMode) {
+      if (personalMode) {
         // Get subscribed channels and their videos
         const subsResponse = await fetch(`/api/subscriptions/${currentUserId}`);
         if (!subsResponse.ok) return [];
@@ -85,7 +81,6 @@ export default function Home() {
       if (!response.ok) return [];
       return response.json();
     },
-    enabled: !searchQuery,
   });
 
   const handleVideoClick = (video: VideoWithChannel) => {
@@ -150,30 +145,8 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Search Results Header */}
-      {searchQuery && (
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-foreground mb-2">
-              Search results for "{searchQuery}"
-            </h2>
-            {videos.length === 0 && (
-              <p className="text-muted-foreground">No videos found matching your search.</p>
-            )}
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => useAppStore.getState().setSearchQuery("")}
-            className="text-sm"
-          >
-            Clear search
-          </Button>
-        </div>
-      )}
-
       {/* Personal Mode Empty State */}
-      {personalMode && videos.length === 0 && !searchQuery && (
+      {personalMode && videos.length === 0 && (
         <div className="text-center py-12">
           <h2 className="text-xl font-semibold text-foreground mb-2">No subscription content</h2>
           <p className="text-muted-foreground">
@@ -196,7 +169,7 @@ export default function Home() {
       )}
 
       {/* Shorts Section - Horizontal scrollable */}
-      {shorts.length > 0 && !searchQuery && (
+      {shorts.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
@@ -226,7 +199,7 @@ export default function Home() {
       )}
 
       {/* Spaces Section - Only show for authenticated users */}
-      {user && !searchQuery && videos.length > 0 && (
+      {user && videos.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">

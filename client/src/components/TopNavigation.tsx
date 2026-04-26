@@ -73,6 +73,7 @@ export default function TopNavigation() {
       saveToHistory(searchQuery.trim());
       setGlobalSearchQuery(searchQuery.trim());
       setShowSearchHistory(false);
+      setLocation("/search");
     }
   };
 
@@ -80,6 +81,7 @@ export default function TopNavigation() {
     setSearchQuery(item);
     setGlobalSearchQuery(item);
     setShowSearchHistory(false);
+    setLocation("/search");
   };
 
   const deleteHistoryItem = (item: string, e: React.MouseEvent) => {

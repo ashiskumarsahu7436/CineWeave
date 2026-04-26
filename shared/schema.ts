@@ -26,6 +26,8 @@ export const users = pgTable("users", {
   authProvider: varchar("auth_provider").default("email"),
   oauthId: text("oauth_id"),
   isVerified: boolean("is_verified").default(false),
+  language: varchar("language").default("en"),
+  country: varchar("country").default("IN"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -104,6 +106,23 @@ export const watchHistory = pgTable("watch_history", {
   watchDuration: integer("watch_duration").notNull(),
 });
 
+export const watchLater = pgTable("watch_later", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  videoId: varchar("video_id").notNull(),
+  addedAt: timestamp("added_at").defaultNow(),
+}, (table) => [
+  unique().on(table.userId, table.videoId),
+]);
+
+export const feedback = pgTable("feedback", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id"),
+  type: text("type").notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const playlists = pgTable("playlists", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
@@ -176,6 +195,16 @@ export const insertWatchHistorySchema = createInsertSchema(watchHistory).omit({
   watchedAt: true,
 });
 
+export const insertWatchLaterSchema = createInsertSchema(watchLater).omit({
+  id: true,
+  addedAt: true,
+});
+
+export const insertFeedbackSchema = createInsertSchema(feedback).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertPlaylistSchema = createInsertSchema(playlists).omit({
   id: true,
   createdAt: true,
@@ -217,6 +246,25 @@ export type InsertLike = z.infer<typeof insertLikeSchema>;
 
 export type WatchHistory = typeof watchHistory.$inferSelect;
 export type InsertWatchHistory = z.infer<typeof insertWatchHistorySchema>;
+
+export type WatchLater = typeof watchLater.$inferSelect;
+export type InsertWatchLater = z.infer<typeof insertWatchLaterSchema>;
+
+export type Feedback = typeof feedback.$inferSelect;
+export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
+
+export type WatchHistoryWithVideo = WatchHistory & { video: VideoWithChannel };
+export type WatchLaterWithVideo = WatchLater & { video: VideoWithChannel };
+
+export type SearchSort = 'relevance' | 'date' | 'views';
+export type SearchDuration = 'any' | 'short' | 'medium' | 'long';
+export type SearchUploaded = 'any' | 'hour' | 'today' | 'week' | 'month' | 'year';
+
+export interface SearchVideoFilters {
+  sort?: SearchSort;
+  duration?: SearchDuration;
+  uploaded?: SearchUploaded;
+}
 
 export type Playlist = typeof playlists.$inferSelect;
 export type InsertPlaylist = z.infer<typeof insertPlaylistSchema>;
