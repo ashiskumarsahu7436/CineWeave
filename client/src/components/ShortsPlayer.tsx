@@ -6,7 +6,6 @@ import {
   ThumbsDown,
   MessageCircle,
   Share2,
-  MoreVertical,
   Volume2,
   VolumeX,
   ChevronUp,
@@ -17,6 +16,7 @@ import {
   Play,
   Pause,
   Loader2,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VideoWithChannel } from "@shared/schema";
@@ -78,6 +78,7 @@ export default function ShortsPlayer({
   const [isDragging, setIsDragging] = useState(false);
   const [containerHeight, setContainerHeight] = useState(0);
   const [isScrubbing, setIsScrubbing] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== "undefined" && window.innerWidth >= 768);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
@@ -158,7 +159,7 @@ export default function ShortsPlayer({
     if (!vid) return;
     if (isPlaying) void vid.play().catch(() => {});
     else vid.pause();
-  }, [isPlaying, currentVideo?.id]);
+  }, [isPlaying, currentVideo?.id, isDesktop]);
 
   // Subscribe to active video events for progress / buffering.
   useEffect(() => {
@@ -653,6 +654,14 @@ export default function ShortsPlayer({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [goPrev, goNext, togglePlayPause, toggleMute, seekBy, onClose]);
 
+  // ---- Desktop breakpoint detection ----
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const update = () => setIsDesktop(mq.matches);
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   if (!currentVideo) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
@@ -661,377 +670,372 @@ export default function ShortsPlayer({
     );
   }
 
-  const dragPct = containerHeight ? (dragOffsetPx / containerHeight) * 100 : 0;
-
   return (
     <div
       ref={containerRef}
       className="fixed inset-0 bg-black z-50 overflow-hidden"
       data-testid="shorts-player"
     >
-      <div className="relative w-full h-full mx-auto max-w-[500px]">
-        {/* Slide stack — current ± 1 mounted, transformed vertically */}
-        {visibleIndices.map((i) => {
-          const v = videos[i];
-          const offsetSlots = i - currentIndex; // -1, 0, 1
-          const transform = `translateY(calc(${offsetSlots * 100}% + ${dragOffsetPx}px))`;
-          const isActive = i === currentIndex;
-          return (
-            <div
-              key={v.id}
-              className={`absolute inset-0 ${
-                isDragging ? "" : "transition-transform duration-300 ease-out"
-              }`}
-              style={{ transform }}
-            >
-              <div
-                className="relative w-full h-full bg-black flex items-center justify-center"
-                onPointerDown={isActive ? handleVideoPointerDown : undefined}
-                onPointerUp={isActive ? handleVideoPointerUp : undefined}
-                onTouchStart={isActive ? onTouchStart : undefined}
-                onTouchMove={isActive ? onTouchMove : undefined}
-                onTouchEnd={isActive ? onTouchEnd : undefined}
-                style={{ touchAction: "none" }}
-              >
-                <video
-                  ref={(el) => {
-                    videoRefs.current[v.id] = el;
-                  }}
-                  src={v.videoUrl}
-                  className="w-full h-full object-contain bg-black"
-                  loop={false}
-                  muted={isActive ? isMuted : true}
-                  playsInline
-                  preload={isActive ? "auto" : "metadata"}
-                  data-testid={isActive ? "video-active" : undefined}
-                />
-
-                {/* Subtle bottom gradient on every slide for readability */}
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-black/95 via-black/55 to-transparent" />
+      {isDesktop ? (
+        /* ==================== DESKTOP LAYOUT ==================== */
+        <div className="flex flex-col h-full">
+          {/* Top bar */}
+          <div className="flex-shrink-0 flex items-center justify-between px-8 py-3">
+            <div className="flex items-center gap-2.5">
+              <div className="bg-red-600 w-9 h-9 rounded-xl flex items-center justify-center shadow-lg">
+                <Zap className="h-5 w-5 text-white fill-white" />
               </div>
+              <span className="text-white font-bold text-xl tracking-tight">Shorts</span>
             </div>
-          );
-        })}
-
-        {/* Buffering spinner (active slide) */}
-        {isWaiting && isPlaying && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-            <Loader2 className="h-12 w-12 text-white animate-spin drop-shadow-lg" />
-          </div>
-        )}
-
-        {/* Play / Pause flash */}
-        {showPlayPauseFlash && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-            <div className="bg-black/50 rounded-full p-5 animate-in fade-in zoom-in duration-200">
-              {isPlaying ? (
-                <Play className="h-14 w-14 text-white" fill="white" />
-              ) : (
-                <Pause className="h-14 w-14 text-white" fill="white" />
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Static play button when paused */}
-        {!isPlaying && !showPlayPauseFlash && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-            <div className="bg-white/15 backdrop-blur-md rounded-full p-6 animate-in fade-in duration-200">
-              <Play className="h-16 w-16 text-white" fill="white" />
-            </div>
-          </div>
-        )}
-
-        {/* Edge skip flash */}
-        {skipFlash && (
-          <div
-            className={`absolute top-0 bottom-0 ${
-              skipFlash === "left" ? "left-0 right-1/2" : "right-0 left-1/2"
-            } flex items-center justify-center pointer-events-none z-10`}
-          >
-            <div className="bg-black/40 backdrop-blur-sm rounded-full p-4 animate-in fade-in zoom-in duration-200">
-              <span className="text-white font-bold text-base">
-                {skipFlash === "left" ? "−5s" : "+5s"}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Heart bursts (double-tap to like) */}
-        {hearts.map((h) => (
-          <div
-            key={h.id}
-            className="absolute pointer-events-none z-30 -translate-x-1/2 -translate-y-1/2 animate-in fade-in zoom-in duration-200"
-            style={{ left: h.x, top: h.y }}
-          >
-            <Heart
-              className="h-24 w-24 text-red-500 drop-shadow-2xl"
-              fill="currentColor"
-              style={{
-                animation:
-                  "heart-pop 800ms cubic-bezier(0.2, 0.9, 0.4, 1) forwards",
-              }}
-            />
-          </div>
-        ))}
-
-        {/* Top controls */}
-        <div className="absolute top-0 left-0 right-0 p-4 sm:p-6 flex items-center justify-between z-20">
-          <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-red-500 to-pink-600 p-2 rounded-lg shadow-lg">
-              <Play className="h-5 w-5 text-white" fill="white" />
-            </div>
-            <span className="text-white font-semibold text-lg hidden sm:block">
-              Shorts
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/20 h-10 w-10"
-              onClick={toggleMute}
-              data-testid="button-mute"
-              title={isMuted ? "Unmute (m)" : "Mute (m)"}
-            >
-              {isMuted ? (
-                <VolumeX className="h-6 w-6" />
-              ) : (
-                <Volume2 className="h-6 w-6" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`text-white hover:bg-white/20 h-10 w-10 ${
-                isLooping ? "bg-white/20" : ""
-              }`}
-              onClick={toggleLoop}
-              data-testid="button-loop"
-              title={
-                isLooping ? "Loop on (replay)" : "Auto-advance to next short"
-              }
-            >
-              <Repeat2 className="h-6 w-6" />
-            </Button>
-            {onClose && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-white hover:bg-white/20 h-10 w-10"
-                onClick={onClose}
-                data-testid="button-close"
-              >
-                <X className="h-6 w-6" />
+            <div className="flex items-center gap-2">
+              <span className="text-white/50 text-sm font-medium">{currentIndex + 1} / {videos.length}</span>
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/15 h-9 w-9" onClick={toggleMute} data-testid="button-mute" title={isMuted ? "Unmute (m)" : "Mute (m)"}>
+                {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
               </Button>
-            )}
+              <Button variant="ghost" size="icon" className={`text-white hover:bg-white/15 h-9 w-9 ${isLooping ? "bg-white/15" : ""}`} onClick={toggleLoop} data-testid="button-loop" title={isLooping ? "Loop on" : "Auto-advance"}>
+                <Repeat2 className="h-5 w-5" />
+              </Button>
+              {onClose && (
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/15 h-9 w-9" onClick={onClose} data-testid="button-close">
+                  <X className="h-5 w-5" />
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Position indicator (X / Y) */}
-        <div className="absolute top-20 sm:top-24 left-1/2 -translate-x-1/2 z-20">
-          <div className="bg-black/40 backdrop-blur-sm text-white text-xs sm:text-sm font-semibold px-3 py-1 rounded-full">
-            {currentIndex + 1} / {videos.length}
-          </div>
-        </div>
+          {/* Main content */}
+          <div className="flex-1 flex items-center justify-center pb-6 overflow-hidden">
+            <div className="flex items-end gap-8">
 
-        {/* Bottom info & actions */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 pb-6 sm:pb-8 z-20">
-          <div className="flex items-end gap-3 sm:gap-4">
-            <div className="flex-1 text-white space-y-3 min-w-0">
-              <div
-                className="flex items-center gap-3 cursor-pointer group"
-                onClick={goToChannel}
-              >
-                <img
-                  src={
-                    currentVideo.channel.avatar ||
-                    "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&h=80&fit=crop"
-                  }
-                  alt={currentVideo.channel.name}
-                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover ring-2 ring-white/30 group-hover:ring-white/60 transition-all"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-base sm:text-lg truncate">
-                      {currentVideo.channel.name}
-                    </span>
-                    {currentVideo.channel.verified && (
-                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400 fill-blue-400 flex-shrink-0" />
+              {/* Video + info column */}
+              <div className="flex flex-col" style={{ width: "fit-content" }}>
+                {/* Video container */}
+                <div
+                  className="relative bg-zinc-900 rounded-2xl overflow-hidden cursor-pointer flex-shrink-0"
+                  style={{ height: "min(calc(100vh - 200px), 680px)", aspectRatio: "9/16" }}
+                  onClick={togglePlayPause}
+                >
+                  {visibleIndices.map((i) => {
+                    const v = videos[i];
+                    const offsetSlots = i - currentIndex;
+                    const transform = `translateY(${offsetSlots * 100}%)`;
+                    const isActive = i === currentIndex;
+                    return (
+                      <div key={v.id} className="absolute inset-0 transition-transform duration-300 ease-out" style={{ transform }}>
+                        <video
+                          ref={(el) => { videoRefs.current[v.id] = el; }}
+                          src={v.videoUrl}
+                          className="w-full h-full object-contain bg-black"
+                          loop={false}
+                          muted={isActive ? isMuted : true}
+                          playsInline
+                          preload={isActive ? "auto" : "metadata"}
+                          data-testid={isActive ? "video-active" : undefined}
+                        />
+                      </div>
+                    );
+                  })}
+
+                  {isWaiting && isPlaying && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                      <Loader2 className="h-10 w-10 text-white animate-spin" />
+                    </div>
+                  )}
+                  {showPlayPauseFlash && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                      <div className="bg-black/50 rounded-full p-4 animate-in fade-in zoom-in duration-200">
+                        {isPlaying ? <Play className="h-12 w-12 text-white" fill="white" /> : <Pause className="h-12 w-12 text-white" fill="white" />}
+                      </div>
+                    </div>
+                  )}
+                  {!isPlaying && !showPlayPauseFlash && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                      <div className="bg-white/15 backdrop-blur-md rounded-full p-5 animate-in fade-in duration-200">
+                        <Play className="h-12 w-12 text-white" fill="white" />
+                      </div>
+                    </div>
+                  )}
+                  {skipFlash && (
+                    <div className={`absolute top-0 bottom-0 ${skipFlash === "left" ? "left-0 right-1/2" : "right-0 left-1/2"} flex items-center justify-center pointer-events-none z-10`}>
+                      <div className="bg-black/40 backdrop-blur-sm rounded-full p-3 animate-in fade-in zoom-in duration-200">
+                        <span className="text-white font-bold text-sm">{skipFlash === "left" ? "−5s" : "+5s"}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Progress bar inside video bottom */}
+                  <div className="absolute bottom-0 left-0 right-0 px-2 pb-2" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      ref={progressBarRef}
+                      className={`relative w-full bg-white/30 rounded-full cursor-pointer touch-none transition-[height] duration-200 ${isScrubbing ? "h-2" : "h-1 hover:h-1.5"}`}
+                      onPointerDown={handleProgressPointerDown}
+                      onPointerMove={handleProgressPointerMove}
+                      onPointerUp={handleProgressPointerUp}
+                      onPointerCancel={handleProgressPointerUp}
+                      data-testid="progress-bar"
+                    >
+                      <div className="absolute top-0 left-0 h-full bg-white rounded-full" style={{ width: `${progress}%` }} />
+                      {isScrubbing && <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg" style={{ left: `calc(${progress}% - 6px)` }} />}
+                    </div>
+                    {isScrubbing && duration > 0 && (
+                      <div className="mt-1 text-center text-white/80 text-xs font-semibold tabular-nums">
+                        {formatSeconds(currentTime)} / {formatSeconds(duration)}
+                      </div>
                     )}
                   </div>
-                  <span className="text-xs sm:text-sm text-white/70">
-                    {(currentVideo.channel.subscribers || 0).toLocaleString()} subscribers
-                  </span>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!requireAuth("Please sign in to subscribe to channels"))
-                      return;
-                    subscribeMutation.mutate();
-                  }}
-                  className={`rounded-full px-5 sm:px-7 h-10 sm:h-11 font-bold text-sm sm:text-base transition-all shadow-lg ${
-                    isSubscribed
-                      ? "bg-white/20 text-white hover:bg-white/30 border border-white/30"
-                      : "bg-red-600 text-white hover:bg-red-700"
-                  }`}
-                  data-testid="button-subscribe"
-                >
-                  {isSubscribed ? "Subscribed" : "Subscribe"}
-                </Button>
-              </div>
 
-              <h3 className="font-semibold text-base sm:text-lg line-clamp-2 leading-snug">
-                {currentVideo.title}
-              </h3>
-
-              {currentVideo.description && (
-                <div>
-                  <p
-                    className={`text-sm sm:text-base text-white/80 leading-snug whitespace-pre-wrap ${
-                      isExpandedDesc ? "" : "line-clamp-2"
-                    }`}
-                  >
-                    {currentVideo.description}
-                  </p>
-                  {currentVideo.description.length > 80 && (
-                    <button
-                      onClick={() => setIsExpandedDesc((v) => !v)}
-                      className="text-white/90 text-xs sm:text-sm font-semibold mt-1 hover:underline"
-                      data-testid="button-toggle-desc"
+                {/* Info below video — naturally same width as video */}
+                <div className="mt-3 w-full text-white">
+                  <div className="flex items-center gap-3 mb-2">
+                    <img
+                      src={currentVideo.channel.avatar || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&h=80&fit=crop"}
+                      alt={currentVideo.channel.name}
+                      className="w-8 h-8 rounded-full object-cover ring-2 ring-white/20 cursor-pointer hover:ring-white/40 transition-all flex-shrink-0"
+                      onClick={goToChannel}
+                    />
+                    <div className="flex-1 min-w-0 cursor-pointer" onClick={goToChannel}>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-sm truncate">{currentVideo.channel.name}</span>
+                        {currentVideo.channel.verified && <CheckCircle className="h-3.5 w-3.5 text-blue-400 fill-blue-400 flex-shrink-0" />}
+                      </div>
+                      <span className="text-xs text-white/50">{(currentVideo.channel.subscribers || 0).toLocaleString()} subscribers</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={(e) => { e.stopPropagation(); if (!requireAuth("Please sign in to subscribe")) return; subscribeMutation.mutate(); }}
+                      className={`rounded-full px-4 h-8 text-xs font-bold flex-shrink-0 transition-all ${isSubscribed ? "bg-zinc-700 text-white hover:bg-zinc-600 border border-white/20" : "bg-white text-black hover:bg-zinc-100"}`}
+                      data-testid="button-subscribe"
                     >
-                      {isExpandedDesc ? "less" : "…more"}
-                    </button>
+                      {isSubscribed ? "Subscribed" : "Subscribe"}
+                    </Button>
+                  </div>
+                  <p className="font-semibold text-sm leading-snug mb-1 line-clamp-2">{currentVideo.title}</p>
+                  {currentVideo.description && (
+                    <div className="mb-1">
+                      <p className={`text-xs text-white/60 leading-snug whitespace-pre-wrap ${isExpandedDesc ? "" : "line-clamp-2"}`}>
+                        {currentVideo.description}
+                      </p>
+                      {currentVideo.description.length > 80 && (
+                        <button onClick={() => setIsExpandedDesc(!isExpandedDesc)} className="text-white/70 text-xs font-semibold hover:underline mt-0.5" data-testid="button-toggle-desc">
+                          {isExpandedDesc ? "less" : "more"}
+                        </button>
+                      )}
+                    </div>
                   )}
+                  <p className="text-xs text-white/40">{formatViews(currentVideo.views || 0)} views</p>
                 </div>
-              )}
-
-              <p className="text-xs sm:text-sm text-white/60 font-medium">
-                {formatViews(currentVideo.views || 0)} views
-              </p>
-            </div>
-
-            {/* Action rail */}
-            <div className="flex flex-col items-center gap-5 sm:gap-6 pb-2">
-              <ActionButton
-                onClick={handleLike}
-                icon={
-                  <Heart
-                    className={`h-6 w-6 sm:h-7 sm:w-7 transition-colors ${
-                      likeStatus?.hasLiked
-                        ? "fill-red-500 text-red-500"
-                        : "text-white"
-                    }`}
-                  />
-                }
-                label={formatViews(stats?.likes || 0)}
-                testId="button-like"
-              />
-              <ActionButton
-                onClick={handleDislike}
-                icon={
-                  <ThumbsDown
-                    className={`h-6 w-6 sm:h-7 sm:w-7 ${
-                      likeStatus?.hasDisliked ? "fill-white" : ""
-                    }`}
-                  />
-                }
-                label="Dislike"
-                testId="button-dislike"
-              />
-              <ActionButton
-                onClick={goToWatchForComments}
-                icon={<MessageCircle className="h-6 w-6 sm:h-7 sm:w-7" />}
-                label={String(stats?.comments || 0)}
-                testId="button-comments"
-              />
-              <ActionButton
-                onClick={handleShare}
-                icon={<Share2 className="h-6 w-6 sm:h-7 sm:w-7" />}
-                label="Share"
-                testId="button-share"
-              />
-              <ActionButton
-                onClick={() =>
-                  toast({
-                    title: "Remix",
-                    description: "Feature coming soon!",
-                  })
-                }
-                icon={<Repeat2 className="h-6 w-6 sm:h-7 sm:w-7" />}
-                label="Remix"
-                testId="button-remix"
-              />
-              <ActionButton
-                onClick={() =>
-                  toast({
-                    title: "More",
-                    description: "More options coming soon!",
-                  })
-                }
-                icon={<MoreVertical className="h-6 w-6 sm:h-7 sm:w-7" />}
-                label=""
-                testId="button-more"
-              />
-            </div>
-          </div>
-
-          {/* Progress bar (scrubbable) */}
-          <div className="mt-3 sm:mt-4">
-            <div
-              ref={progressBarRef}
-              className={`relative w-full bg-white/25 rounded-full cursor-pointer touch-none transition-[height] duration-200 ${
-                isScrubbing ? "h-2" : "h-1 hover:h-1.5"
-              }`}
-              onPointerDown={handleProgressPointerDown}
-              onPointerMove={handleProgressPointerMove}
-              onPointerUp={handleProgressPointerUp}
-              onPointerCancel={handleProgressPointerUp}
-              data-testid="progress-bar"
-            >
-              <div
-                className="absolute top-0 left-0 h-full bg-white rounded-full"
-                style={{ width: `${progress}%` }}
-              />
-              {isScrubbing && (
-                <div
-                  className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg"
-                  style={{ left: `calc(${progress}% - 7px)` }}
-                />
-              )}
-            </div>
-            {isScrubbing && duration > 0 && (
-              <div className="mt-1 text-center text-white/90 text-xs font-semibold tabular-nums">
-                {formatSeconds(currentTime)} / {formatSeconds(duration)}
               </div>
-            )}
+
+              {/* Actions + Nav column */}
+              <div className="flex flex-col items-center gap-5 pb-4">
+                <button
+                  onClick={goPrev}
+                  disabled={currentIndex === 0}
+                  className={`rounded-full p-2.5 transition-all ${currentIndex === 0 ? "opacity-20 cursor-not-allowed text-white" : "bg-zinc-800 hover:bg-zinc-700 text-white hover:scale-110"}`}
+                  data-testid="button-prev"
+                >
+                  <ChevronUp className="h-6 w-6" />
+                </button>
+                <DesktopActionButton onClick={handleLike} icon={<Heart className={`h-6 w-6 transition-colors ${likeStatus?.hasLiked ? "fill-red-500 text-red-500" : "text-white"}`} />} label={formatViews(stats?.likes || 0)} testId="button-like" />
+                <DesktopActionButton onClick={handleDislike} icon={<ThumbsDown className={`h-6 w-6 text-white ${likeStatus?.hasDisliked ? "fill-white" : ""}`} />} label="Dislike" testId="button-dislike" />
+                <DesktopActionButton onClick={goToWatchForComments} icon={<MessageCircle className="h-6 w-6 text-white" />} label={String(stats?.comments || 0)} testId="button-comments" />
+                <DesktopActionButton onClick={handleShare} icon={<Share2 className="h-6 w-6 text-white" />} label="Share" testId="button-share" />
+                <DesktopActionButton onClick={() => toast({ title: "Remix", description: "Feature coming soon!" })} icon={<Repeat2 className="h-6 w-6 text-white" />} label="Remix" testId="button-remix" />
+                <button
+                  onClick={goNext}
+                  disabled={currentIndex >= videos.length - 1}
+                  className={`rounded-full p-2.5 transition-all ${currentIndex >= videos.length - 1 ? "opacity-20 cursor-not-allowed text-white" : "bg-zinc-800 hover:bg-zinc-700 text-white hover:scale-110"}`}
+                  data-testid="button-next"
+                >
+                  <ChevronDown className="h-6 w-6" />
+                </button>
+              </div>
+
+            </div>
           </div>
         </div>
+      ) : (
+        /* ==================== MOBILE LAYOUT ==================== */
+        <div className="relative w-full h-full max-w-[420px] mx-auto">
+          {/* Slide stack */}
+          {visibleIndices.map((i) => {
+            const v = videos[i];
+            const offsetSlots = i - currentIndex;
+            const transform = `translateY(calc(${offsetSlots * 100}% + ${dragOffsetPx}px))`;
+            const isActive = i === currentIndex;
+            return (
+              <div
+                key={v.id}
+                className={`absolute inset-0 ${isDragging ? "" : "transition-transform duration-300 ease-out"}`}
+                style={{ transform }}
+              >
+                <div
+                  className="relative w-full h-full bg-black flex items-center justify-center"
+                  onPointerDown={isActive ? handleVideoPointerDown : undefined}
+                  onPointerUp={isActive ? handleVideoPointerUp : undefined}
+                  onTouchStart={isActive ? onTouchStart : undefined}
+                  onTouchMove={isActive ? onTouchMove : undefined}
+                  onTouchEnd={isActive ? onTouchEnd : undefined}
+                  style={{ touchAction: "none" }}
+                >
+                  <video
+                    ref={(el) => { videoRefs.current[v.id] = el; }}
+                    src={v.videoUrl}
+                    className="w-full h-full object-contain bg-black"
+                    loop={false}
+                    muted={isActive ? isMuted : true}
+                    playsInline
+                    preload={isActive ? "auto" : "metadata"}
+                    data-testid={isActive ? "video-active" : undefined}
+                  />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+                </div>
+              </div>
+            );
+          })}
 
-        {/* Desktop nav arrows */}
-        {currentIndex > 0 && (
-          <button
-            onClick={goPrev}
-            className="hidden md:flex absolute top-1/2 right-6 -translate-y-1/2 items-center justify-center text-white/90 hover:text-white hover:bg-white/20 rounded-full p-3 transition-all z-20"
-            data-testid="button-prev"
-          >
-            <ChevronUp className="h-8 w-8" />
-          </button>
-        )}
-        {currentIndex < videos.length - 1 && (
-          <button
-            onClick={goNext}
-            className="hidden md:flex absolute bottom-[42%] right-6 items-center justify-center text-white/90 hover:text-white hover:bg-white/20 rounded-full p-3 transition-all z-20"
-            data-testid="button-next"
-          >
-            <ChevronDown className="h-8 w-8" />
-          </button>
-        )}
-      </div>
+          {/* Overlays */}
+          {isWaiting && isPlaying && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <Loader2 className="h-12 w-12 text-white animate-spin drop-shadow-lg" />
+            </div>
+          )}
+          {showPlayPauseFlash && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="bg-black/50 rounded-full p-5 animate-in fade-in zoom-in duration-200">
+                {isPlaying ? <Play className="h-14 w-14 text-white" fill="white" /> : <Pause className="h-14 w-14 text-white" fill="white" />}
+              </div>
+            </div>
+          )}
+          {!isPlaying && !showPlayPauseFlash && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="bg-white/15 backdrop-blur-md rounded-full p-6 animate-in fade-in duration-200">
+                <Play className="h-16 w-16 text-white" fill="white" />
+              </div>
+            </div>
+          )}
+          {skipFlash && (
+            <div className={`absolute top-0 bottom-0 ${skipFlash === "left" ? "left-0 right-1/2" : "right-0 left-1/2"} flex items-center justify-center pointer-events-none z-10`}>
+              <div className="bg-black/40 backdrop-blur-sm rounded-full p-4 animate-in fade-in zoom-in duration-200">
+                <span className="text-white font-bold text-base">{skipFlash === "left" ? "−5s" : "+5s"}</span>
+              </div>
+            </div>
+          )}
 
-      {/* Heart-pop keyframes (scoped here to keep things self-contained) */}
+          {/* Top bar */}
+          <div className="absolute top-0 left-0 right-0 px-3 py-2 flex items-center justify-between z-20">
+            <div className="flex items-center gap-2">
+              <div className="bg-red-600 w-7 h-7 rounded-lg flex items-center justify-center shadow-lg">
+                <Zap className="h-3.5 w-3.5 text-white fill-white" />
+              </div>
+              <span className="text-white font-bold text-base tracking-tight">Shorts</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-white/50 text-xs mr-1">{currentIndex + 1}/{videos.length}</span>
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8" onClick={toggleMute} data-testid="button-mute">
+                {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </Button>
+              <Button variant="ghost" size="icon" className={`text-white hover:bg-white/20 h-8 w-8 ${isLooping ? "bg-white/20" : ""}`} onClick={toggleLoop} data-testid="button-loop">
+                <Repeat2 className="h-4 w-4" />
+              </Button>
+              {onClose && (
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8" onClick={onClose} data-testid="button-close">
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom overlay — compact */}
+          <div className="absolute bottom-0 left-0 right-0 px-3 pb-3 z-20">
+            <div className="flex items-end gap-3">
+              {/* Left: info */}
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <img
+                    src={currentVideo.channel.avatar || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&h=80&fit=crop"}
+                    alt={currentVideo.channel.name}
+                    className="w-8 h-8 rounded-full object-cover ring-2 ring-white/30 flex-shrink-0 cursor-pointer"
+                    onClick={goToChannel}
+                  />
+                  <span className="text-white font-semibold text-sm truncate flex-1 min-w-0 cursor-pointer" onClick={goToChannel}>
+                    {currentVideo.channel.name}
+                  </span>
+                  {currentVideo.channel.verified && <CheckCircle className="h-3.5 w-3.5 text-blue-400 fill-blue-400 flex-shrink-0" />}
+                  <Button
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); if (!requireAuth("Please sign in to subscribe")) return; subscribeMutation.mutate(); }}
+                    className={`rounded-full px-3 h-7 text-xs font-bold flex-shrink-0 transition-all ${isSubscribed ? "bg-white/20 text-white hover:bg-white/30 border border-white/20" : "bg-white text-black hover:bg-zinc-100"}`}
+                    data-testid="button-subscribe"
+                  >
+                    {isSubscribed ? "✓ Sub" : "Subscribe"}
+                  </Button>
+                </div>
+                <p className="text-white text-sm font-semibold line-clamp-1 leading-snug">{currentVideo.title}</p>
+                {currentVideo.description && (
+                  <div>
+                    <p className={`text-white/70 text-xs leading-snug whitespace-pre-wrap ${isExpandedDesc ? "" : "line-clamp-1"}`}>
+                      {currentVideo.description}
+                    </p>
+                    {currentVideo.description.length > 50 && (
+                      <button onClick={() => setIsExpandedDesc(!isExpandedDesc)} className="text-white/80 text-xs font-semibold hover:underline" data-testid="button-toggle-desc">
+                        {isExpandedDesc ? " less" : " more"}
+                      </button>
+                    )}
+                  </div>
+                )}
+                <p className="text-white/50 text-xs">{formatViews(currentVideo.views || 0)} views</p>
+              </div>
+
+              {/* Right: compact action rail */}
+              <div className="flex flex-col items-center gap-4 pb-1 flex-shrink-0">
+                <ActionButton onClick={handleLike} icon={<Heart className={`h-6 w-6 transition-colors ${likeStatus?.hasLiked ? "fill-red-500 text-red-500" : "text-white"}`} />} label={formatViews(stats?.likes || 0)} testId="button-like" />
+                <ActionButton onClick={handleDislike} icon={<ThumbsDown className={`h-6 w-6 ${likeStatus?.hasDisliked ? "fill-white text-white" : "text-white"}`} />} label="Dislike" testId="button-dislike" />
+                <ActionButton onClick={goToWatchForComments} icon={<MessageCircle className="h-6 w-6 text-white" />} label={String(stats?.comments || 0)} testId="button-comments" />
+                <ActionButton onClick={handleShare} icon={<Share2 className="h-6 w-6 text-white" />} label="Share" testId="button-share" />
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div className="mt-2">
+              <div
+                ref={progressBarRef}
+                className={`relative w-full bg-white/25 rounded-full cursor-pointer touch-none transition-[height] duration-200 ${isScrubbing ? "h-2" : "h-1 hover:h-1.5"}`}
+                onPointerDown={handleProgressPointerDown}
+                onPointerMove={handleProgressPointerMove}
+                onPointerUp={handleProgressPointerUp}
+                onPointerCancel={handleProgressPointerUp}
+                data-testid="progress-bar"
+              >
+                <div className="absolute top-0 left-0 h-full bg-white rounded-full" style={{ width: `${progress}%` }} />
+                {isScrubbing && <div className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg" style={{ left: `calc(${progress}% - 7px)` }} />}
+              </div>
+              {isScrubbing && duration > 0 && (
+                <div className="mt-1 text-center text-white/90 text-xs font-semibold tabular-nums">
+                  {formatSeconds(currentTime)} / {formatSeconds(duration)}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hearts — global overlay on both layouts */}
+      {hearts.map((h) => (
+        <div
+          key={h.id}
+          className="absolute pointer-events-none z-[60] -translate-x-1/2 -translate-y-1/2 animate-in fade-in zoom-in duration-200"
+          style={{ left: h.x, top: h.y }}
+        >
+          <Heart
+            className="h-24 w-24 text-red-500 drop-shadow-2xl"
+            fill="currentColor"
+            style={{ animation: "heart-pop 800ms cubic-bezier(0.2, 0.9, 0.4, 1) forwards" }}
+          />
+        </div>
+      ))}
+
       <style>{`
         @keyframes heart-pop {
           0%   { transform: scale(0.5); opacity: 0; }
@@ -1065,13 +1069,28 @@ function ActionButton({ onClick, icon, label, testId }: ActionButtonProps) {
       className="flex flex-col items-center gap-1.5 text-white hover:scale-110 active:scale-95 transition-all duration-200"
       data-testid={testId}
     >
-      <div className="relative bg-white/10 rounded-full p-2 sm:p-2.5 backdrop-blur-sm hover:bg-white/20 transition-colors">
+      <div className="relative bg-white/10 rounded-full p-2 backdrop-blur-sm hover:bg-white/20 transition-colors">
         {icon}
       </div>
       {label && (
-        <span className="text-xs sm:text-sm font-bold drop-shadow-lg">
-          {label}
-        </span>
+        <span className="text-xs font-bold drop-shadow-lg">{label}</span>
+      )}
+    </button>
+  );
+}
+
+function DesktopActionButton({ onClick, icon, label, testId }: ActionButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center gap-1.5 hover:scale-110 active:scale-95 transition-all duration-200"
+      data-testid={testId}
+    >
+      <div className="bg-zinc-800 hover:bg-zinc-700 rounded-full p-3 transition-colors">
+        {icon}
+      </div>
+      {label && (
+        <span className="text-white/70 text-xs font-semibold">{label}</span>
       )}
     </button>
   );
