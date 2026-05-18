@@ -204,30 +204,30 @@ export default function Sidebar({ isMobile = false }: SidebarProps) {
           <div className="px-4 py-4">
             <div className="text-xs text-muted-foreground space-y-1">
               <div className="flex flex-wrap gap-x-2">
-                <a href="#" className="hover:text-foreground" data-testid="link-about">About</a>
-                <a href="#" className="hover:text-foreground" data-testid="link-press">Press</a>
-                <a href="#" className="hover:text-foreground" data-testid="link-copyright">Copyright</a>
+                <Link href="/about" className="hover:text-foreground" data-testid="link-about">About</Link>
+                <Link href="/press" className="hover:text-foreground" data-testid="link-press">Press</Link>
+                <Link href="/copyright" className="hover:text-foreground" data-testid="link-copyright">Copyright</Link>
               </div>
               <div className="flex flex-wrap gap-x-2">
-                <a href="#" className="hover:text-foreground" data-testid="link-contact">Contact us</a>
-                <a href="#" className="hover:text-foreground" data-testid="link-creators">Creators</a>
+                <Link href="/contact" className="hover:text-foreground" data-testid="link-contact">Contact us</Link>
+                <Link href="/creators" className="hover:text-foreground" data-testid="link-creators">Creators</Link>
               </div>
               <div className="flex flex-wrap gap-x-2">
-                <a href="#" className="hover:text-foreground" data-testid="link-advertise">Advertise</a>
-                <a href="#" className="hover:text-foreground" data-testid="link-developers">Developers</a>
+                <Link href="/advertise" className="hover:text-foreground" data-testid="link-advertise">Advertise</Link>
+                <Link href="/developers" className="hover:text-foreground" data-testid="link-developers">Developers</Link>
               </div>
               <div className="flex flex-wrap gap-x-2 mt-2">
-                <a href="#" className="hover:text-foreground" data-testid="link-terms">Terms</a>
-                <a href="#" className="hover:text-foreground" data-testid="link-privacy">Privacy</a>
+                <Link href="/terms" className="hover:text-foreground" data-testid="link-terms">Terms</Link>
+                <Link href="/privacy" className="hover:text-foreground" data-testid="link-privacy">Privacy</Link>
               </div>
               <div className="flex flex-wrap gap-x-2">
-                <a href="#" className="hover:text-foreground" data-testid="link-policy">Policy & Safety</a>
+                <Link href="/policy-safety" className="hover:text-foreground" data-testid="link-policy">Policy & Safety</Link>
               </div>
               <div className="flex flex-wrap gap-x-2">
-                <a href="#" className="hover:text-foreground" data-testid="link-how-works">How CineWeave works</a>
+                <Link href="/how-it-works" className="hover:text-foreground" data-testid="link-how-works">How CineWeave works</Link>
               </div>
               <div className="flex flex-wrap gap-x-2">
-                <a href="#" className="hover:text-foreground" data-testid="link-test-features">Test new features</a>
+                <Link href="/test-features" className="hover:text-foreground" data-testid="link-test-features">Test new features</Link>
               </div>
               <div className="mt-3 text-muted-foreground/70">
                 © 2025 CineWeave Pvt. Ltd.

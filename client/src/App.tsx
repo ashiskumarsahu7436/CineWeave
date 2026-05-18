@@ -34,6 +34,18 @@ import StudioAnalytics from "@/pages/studio/Analytics";
 import StudioSettings from "@/pages/studio/Settings";
 import SearchPage from "@/pages/Search";
 import NotFound from "@/pages/not-found";
+import About from "@/pages/About";
+import Press from "@/pages/Press";
+import Copyright from "@/pages/Copyright";
+import Contact from "@/pages/Contact";
+import Creators from "@/pages/Creators";
+import Advertise from "@/pages/Advertise";
+import Developers from "@/pages/Developers";
+import Terms from "@/pages/Terms";
+import Privacy from "@/pages/Privacy";
+import PolicySafety from "@/pages/PolicySafety";
+import HowItWorks from "@/pages/HowItWorks";
+import TestFeatures from "@/pages/TestFeatures";
 
 // Protected route wrapper
 function ProtectedRoute({ component: Component }: { component: () => JSX.Element }) {
@@ -264,6 +276,42 @@ function Router() {
       </Route>
       <Route path="/search">
         <SearchPage />
+      </Route>
+      <Route path="/about">
+        {() => (<Layout><About /></Layout>)}
+      </Route>
+      <Route path="/press">
+        {() => (<Layout><Press /></Layout>)}
+      </Route>
+      <Route path="/copyright">
+        {() => (<Layout><Copyright /></Layout>)}
+      </Route>
+      <Route path="/contact">
+        {() => (<Layout><Contact /></Layout>)}
+      </Route>
+      <Route path="/creators">
+        {() => (<Layout><Creators /></Layout>)}
+      </Route>
+      <Route path="/advertise">
+        {() => (<Layout><Advertise /></Layout>)}
+      </Route>
+      <Route path="/developers">
+        {() => (<Layout><Developers /></Layout>)}
+      </Route>
+      <Route path="/terms">
+        {() => (<Layout><Terms /></Layout>)}
+      </Route>
+      <Route path="/privacy">
+        {() => (<Layout><Privacy /></Layout>)}
+      </Route>
+      <Route path="/policy-safety">
+        {() => (<Layout><PolicySafety /></Layout>)}
+      </Route>
+      <Route path="/how-it-works">
+        {() => (<Layout><HowItWorks /></Layout>)}
+      </Route>
+      <Route path="/test-features">
+        {() => (<Layout><TestFeatures /></Layout>)}
       </Route>
       <Route>
         {() => (
