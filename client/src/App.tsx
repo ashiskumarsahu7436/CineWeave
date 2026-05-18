@@ -15,6 +15,7 @@ import Spaces from "@/pages/Spaces";
 import Library from "@/pages/Library";
 import History from "@/pages/History";
 import WatchLater from "@/pages/WatchLater";
+import PlaylistPage from "@/pages/Playlist";
 import Watch from "@/pages/Watch";
 import Channel from "@/pages/Channel";
 import Explore from "@/pages/Explore";
@@ -167,6 +168,13 @@ function Router() {
         {() => (
           <Layout>
             <ProtectedRoute component={WatchLater} />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/playlist/:id">
+        {() => (
+          <Layout>
+            <ProtectedRoute component={PlaylistPage} />
           </Layout>
         )}
       </Route>

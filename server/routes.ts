@@ -1235,7 +1235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      const historyData = insertWatchHistorySchema.parse({ ...req.body, userId });
+      const historyData = insertWatchHistorySchema.parse({ watchDuration: 0, ...req.body, userId });
       const history = await storage.addToWatchHistory(historyData);
       res.status(201).json(history);
     } catch (error) {
@@ -1464,6 +1464,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Video not found in playlist" });
       }
       res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get single playlist by ID
+  app.get("/api/playlists/detail/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const playlist = await storage.getPlaylist(req.params.id);
+      if (!playlist) return res.status(404).json({ message: "Playlist not found" });
+      if (playlist.userId !== userId) return res.status(403).json({ message: "Forbidden" });
+      res.json(playlist);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get playlist videos with full video details
+  app.get("/api/playlists/:id/videos", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const playlist = await storage.getPlaylist(req.params.id);
+      if (!playlist) return res.status(404).json({ message: "Playlist not found" });
+      if (playlist.userId !== userId) return res.status(403).json({ message: "Forbidden" });
+      const videos = await storage.getPlaylistVideosWithDetails(req.params.id);
+      res.json(videos);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }

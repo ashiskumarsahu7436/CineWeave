@@ -1,19 +1,25 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Trash2, Shield, User, Bell, Eye, Download } from "lucide-react";
+import { Trash2, Shield, User, Bell, Eye, Download, History as HistoryIcon, PauseCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useAppStore } from "@/store/useAppStore";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { Channel } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function Settings() {
-  const { currentUserId, personalMode, setPersonalMode } = useAppStore();
+  const { currentUserId, personalMode, setPersonalMode, pauseHistory, setPauseHistory } = useAppStore();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [notifications, setNotifications] = useState(true);
   const [autoplay, setAutoplay] = useState(true);
+
+  const userId = (user as any)?.id || currentUserId;
 
   // Fetch blocked channels
   const { data: blockedChannels = [], isLoading } = useQuery<Channel[]>({
@@ -26,10 +32,27 @@ export default function Settings() {
       await apiRequest("DELETE", `/api/users/${currentUserId}/block/${channelId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/users", currentUserId, "blocked-channels"] 
+      queryClient.invalidateQueries({
+        queryKey: ["/api/users", currentUserId, "blocked-channels"],
       });
     },
+  });
+
+  // Clear watch history mutation
+  const clearHistoryMutation = useMutation({
+    mutationFn: async () => {
+      if (!userId) throw new Error("Not logged in");
+      const res = await fetch(`/api/watch-history/${userId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to clear history");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/watch-history", userId] });
+      toast({ title: "Watch history cleared" });
+    },
+    onError: () => toast({ title: "Could not clear history", variant: "destructive" }),
   });
 
   const handleUnblockChannel = (channel: Channel) => {
@@ -40,22 +63,22 @@ export default function Settings() {
 
   const handleExportBlockList = () => {
     const exportData = {
-      blockedChannels: blockedChannels.map(channel => ({
+      blockedChannels: blockedChannels.map((channel) => ({
         id: channel.id,
         name: channel.name,
-        username: channel.username
+        username: channel.username,
       })),
-      exportDate: new Date().toISOString()
+      exportDate: new Date().toISOString(),
     };
-    
+
     const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: 'application/json'
+      type: "application/json",
     });
-    
+
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `cineweave-blocked-channels-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `cineweave-blocked-channels-${new Date().toISOString().split("T")[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -107,9 +130,9 @@ export default function Settings() {
               data-testid="switch-personal-mode-settings"
             />
           </div>
-          
+
           <Separator />
-          
+
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-medium text-foreground">Notifications</h3>
@@ -123,9 +146,9 @@ export default function Settings() {
               data-testid="switch-notifications"
             />
           </div>
-          
+
           <Separator />
-          
+
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-medium text-foreground">Autoplay</h3>
@@ -223,6 +246,56 @@ export default function Settings() {
         </CardContent>
       </Card>
 
+      {/* History Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <HistoryIcon className="h-5 w-5" />
+            Watch History
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-foreground">Pause Watch History</h3>
+              <p className="text-sm text-muted-foreground">
+                When paused, videos you watch won't be added to your history
+              </p>
+            </div>
+            <Switch
+              checked={pauseHistory}
+              onCheckedChange={setPauseHistory}
+              data-testid="switch-pause-history"
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-foreground">Clear Watch History</h3>
+              <p className="text-sm text-muted-foreground">
+                Permanently remove all videos from your watch history
+              </p>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (confirm("Clear all watch history? This cannot be undone.")) {
+                  clearHistoryMutation.mutate();
+                }
+              }}
+              disabled={clearHistoryMutation.isPending || !userId}
+              data-testid="button-clear-history"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {clearHistoryMutation.isPending ? "Clearing…" : "Clear History"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Data & Privacy */}
       <Card>
         <CardHeader>
@@ -237,14 +310,10 @@ export default function Settings() {
               <Download className="h-4 w-4 mr-2" />
               Download My Data
             </Button>
-            <Button variant="outline" data-testid="button-clear-history">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Clear Watch History
-            </Button>
           </div>
-          
+
           <Separator />
-          
+
           <div className="text-sm text-muted-foreground space-y-2">
             <p>• Your data is stored securely and never shared with third parties</p>
             <p>• You can export your data or delete your account at any time</p>

@@ -33,7 +33,7 @@ export default function Watch() {
   const [, params] = useRoute("/watch/:id");
   const [, setLocation] = useLocation();
   const videoId = params?.id;
-  const { currentUserId } = useAppStore();
+  const { currentUserId, pauseHistory } = useAppStore();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -478,7 +478,7 @@ export default function Watch() {
   const handleVideoPlay = () => {
     if (!hasTrackedView && videoId) {
       trackViewMutation.mutate();
-      if (currentUserId) {
+      if (currentUserId && !pauseHistory) {
         trackHistoryMutation.mutate();
       }
       setHasTrackedView(true);

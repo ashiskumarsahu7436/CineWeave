@@ -271,6 +271,7 @@ export type InsertPlaylist = z.infer<typeof insertPlaylistSchema>;
 
 export type PlaylistVideo = typeof playlistVideos.$inferSelect;
 export type InsertPlaylistVideo = z.infer<typeof insertPlaylistVideoSchema>;
+export type PlaylistVideoWithDetails = PlaylistVideo & { video: VideoWithChannel };
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;

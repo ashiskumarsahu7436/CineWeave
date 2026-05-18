@@ -88,6 +88,7 @@ export interface IStorage {
   addVideoToPlaylist(playlistVideo: InsertPlaylistVideo): Promise<PlaylistVideo>;
   removeVideoFromPlaylist(playlistId: string, videoId: string): Promise<boolean>;
   getPlaylistVideos(playlistId: string): Promise<PlaylistVideo[]>;
+  getPlaylistVideosWithDetails(playlistId: string): Promise<(PlaylistVideo & { video: VideoWithChannel })[]>;
 
   // Notification methods
   getNotifications(userId: string, limit?: number): Promise<Notification[]>;
@@ -1143,6 +1144,20 @@ export class DbStorage implements IStorage {
   }
 
   async addToWatchHistory(insertHistory: InsertWatchHistory): Promise<WatchHistory> {
+    // Upsert: update watchedAt if entry exists, otherwise insert fresh
+    const existing = await db
+      .select({ id: watchHistory.id })
+      .from(watchHistory)
+      .where(and(eq(watchHistory.userId, insertHistory.userId), eq(watchHistory.videoId, insertHistory.videoId)))
+      .limit(1);
+    if (existing.length > 0) {
+      const updated = await db
+        .update(watchHistory)
+        .set({ watchedAt: new Date(), watchDuration: insertHistory.watchDuration })
+        .where(eq(watchHistory.id, existing[0].id))
+        .returning();
+      return updated[0];
+    }
     const result = await db.insert(watchHistory).values(insertHistory).returning();
     return result[0];
   }
@@ -1320,6 +1335,22 @@ export class DbStorage implements IStorage {
         console.log("Neon null result detected in getPlaylistVideos, returning empty array");
         return [];
       }
+      throw error;
+    }
+  }
+
+  async getPlaylistVideosWithDetails(playlistId: string): Promise<(PlaylistVideo & { video: VideoWithChannel })[]> {
+    try {
+      const rows = await db
+        .select({ pv: playlistVideos, video: videos, channel: channels })
+        .from(playlistVideos)
+        .innerJoin(videos, eq(playlistVideos.videoId, videos.id))
+        .innerJoin(channels, eq(videos.channelId, channels.id))
+        .where(eq(playlistVideos.playlistId, playlistId))
+        .orderBy(playlistVideos.position);
+      return rows.map(r => ({ ...r.pv, video: { ...r.video, channel: r.channel } }));
+    } catch (error) {
+      if (this.isNeonNullError(error)) return [];
       throw error;
     }
   }

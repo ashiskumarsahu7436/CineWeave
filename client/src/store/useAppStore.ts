@@ -12,6 +12,7 @@ export interface SearchFilters {
 
 interface AppState {
   personalMode: boolean;
+  pauseHistory: boolean;
   searchQuery: string;
   searchFilters: SearchFilters;
   currentUserId: string;
@@ -19,6 +20,7 @@ interface AppState {
   mobileSidebarOpen: boolean;
   theme: Theme;
   setPersonalMode: (mode: boolean) => void;
+  setPauseHistory: (pause: boolean) => void;
   setSearchQuery: (query: string) => void;
   setSearchFilters: (filters: Partial<SearchFilters>) => void;
   resetSearchFilters: () => void;
@@ -38,6 +40,7 @@ export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
       personalMode: false,
+      pauseHistory: false,
       searchQuery: "",
       searchFilters: defaultFilters,
       currentUserId: "",
@@ -45,6 +48,7 @@ export const useAppStore = create<AppState>()(
       mobileSidebarOpen: false,
       theme: 'dark',
       setPersonalMode: (mode: boolean) => set({ personalMode: mode }),
+      setPauseHistory: (pause: boolean) => set({ pauseHistory: pause }),
       setSearchQuery: (query: string) => set({ searchQuery: query }),
       setSearchFilters: (filters: Partial<SearchFilters>) =>
         set((state) => ({ searchFilters: { ...state.searchFilters, ...filters } })),
@@ -56,7 +60,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'cineweave-storage',
-      partialize: (state) => ({ theme: state.theme }),
+      partialize: (state) => ({ theme: state.theme, pauseHistory: state.pauseHistory }),
     }
   )
 );

@@ -1,12 +1,13 @@
-import { BookOpen, Clock, History as HistoryIcon, ListVideo, Plus } from "lucide-react";
-import { Link } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { BookOpen, Clock, History as HistoryIcon, ListVideo, Plus, MoreVertical, Edit, Trash2 } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -20,10 +21,15 @@ const libraryCategories = [
 export default function Library() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const userId = (user as any)?.id;
   const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
 
   const { data: playlists = [], isLoading } = useQuery<Playlist[]>({
     queryKey: ['/api/playlists', userId],
@@ -54,6 +60,48 @@ export default function Library() {
     },
     onError: () => toast({ title: 'Could not create playlist', variant: 'destructive' }),
   });
+
+  const editMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingPlaylist) return;
+      const res = await apiRequest('PATCH', `/api/playlists/${editingPlaylist.id}`, {
+        name: editName.trim(),
+        description: editDescription.trim() || null,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/playlists', userId] });
+      setEditOpen(false);
+      setEditingPlaylist(null);
+      toast({ title: 'Playlist updated' });
+    },
+    onError: () => toast({ title: 'Could not update playlist', variant: 'destructive' }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest('DELETE', `/api/playlists/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/playlists', userId] });
+      toast({ title: 'Playlist deleted' });
+    },
+    onError: () => toast({ title: 'Could not delete playlist', variant: 'destructive' }),
+  });
+
+  const openEdit = (p: Playlist) => {
+    setEditingPlaylist(p);
+    setEditName(p.name);
+    setEditDescription(p.description || "");
+    setEditOpen(true);
+  };
+
+  const handleDelete = (p: Playlist) => {
+    if (confirm(`Delete playlist "${p.name}"? This cannot be undone.`)) {
+      deleteMutation.mutate(p.id);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -111,11 +159,16 @@ export default function Library() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {playlists.map((p) => (
-              <Card key={p.id} className="hover-elevate cursor-pointer" data-testid={`card-playlist-${p.id}`}>
+              <Card
+                key={p.id}
+                className="hover-elevate cursor-pointer relative group"
+                data-testid={`card-playlist-${p.id}`}
+                onClick={() => setLocation(`/playlist/${p.id}`)}
+              >
                 <CardContent className="p-6">
                   <div className="flex items-start gap-3">
-                    <ListVideo className="h-8 w-8 text-primary flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
+                    <ListVideo className="h-8 w-8 text-primary flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0 pr-8">
                       <h3 className="font-semibold truncate">{p.name}</h3>
                       {p.description && (
                         <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{p.description}</p>
@@ -124,12 +177,43 @@ export default function Library() {
                     </div>
                   </div>
                 </CardContent>
+                <div
+                  className="absolute top-3 right-3"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        data-testid={`button-playlist-menu-${p.id}`}
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => openEdit(p)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => handleDelete(p)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </Card>
             ))}
           </div>
         )}
       </div>
 
+      {/* Create playlist dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
@@ -153,6 +237,35 @@ export default function Library() {
               data-testid="button-confirm-create-playlist"
             >
               {createMutation.isPending ? 'Creating…' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit playlist dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit playlist</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm text-muted-foreground">Name</label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Playlist name" data-testid="input-edit-playlist-name" />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground">Description (optional)</label>
+              <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} data-testid="input-edit-playlist-description" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => editMutation.mutate()}
+              disabled={!editName.trim() || editMutation.isPending}
+              data-testid="button-confirm-edit-playlist"
+            >
+              {editMutation.isPending ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>
         </DialogContent>
