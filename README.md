@@ -70,7 +70,7 @@ CineWeave lets users discover, watch, and organize video content in a highly per
 |---|---|
 | **Supabase** | Managed PostgreSQL database (connected via `postgres.js` with `prepare: false` for Supabase's transaction pooler — see `server/db.ts` line 9) |
 | **Cloudinary** | Video and image storage + CDN. Signed direct upload bypasses the server entirely |
-| **Replit** | Hosting and deployment |
+| **Render** | Hosting and deployment |
 
 ---
 
