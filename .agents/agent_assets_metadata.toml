@@ -6,3 +6,9 @@ id = "i7YM_hXCPSogddcOyfIaK"
 uri = "file://screenshots/new-player.jpg"
 type = "image"
 title = "New CineWeave Player — paused state with title bar"
+
+[[outputs]]
+id = "V1fNf3eCkfl4YK3UIjWKR"
+uri = "file://README.md"
+type = "text"
+title = "CineWeave README.md"
