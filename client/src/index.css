@@ -67,6 +67,36 @@
   --sidebar-ring: hsl(200, 100%, 62%);
 }
 
+.light {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(0, 0%, 9%);
+  --card: hsl(0, 0%, 97%);
+  --card-foreground: hsl(0, 0%, 9%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(0, 0%, 9%);
+  --primary: hsl(200, 100%, 40%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(0, 0%, 92%);
+  --secondary-foreground: hsl(0, 0%, 9%);
+  --muted: hsl(0, 0%, 93%);
+  --muted-foreground: hsl(0, 0%, 42%);
+  --accent: hsl(200, 100%, 40%);
+  --accent-foreground: hsl(0, 0%, 100%);
+  --destructive: hsl(0, 84%, 50%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(0, 0%, 84%);
+  --input: hsl(0, 0%, 84%);
+  --ring: hsl(200, 100%, 40%);
+  --sidebar: hsl(0, 0%, 96%);
+  --sidebar-foreground: hsl(0, 0%, 9%);
+  --sidebar-primary: hsl(200, 100%, 40%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-accent: hsl(0, 0%, 88%);
+  --sidebar-accent-foreground: hsl(200, 100%, 30%);
+  --sidebar-border: hsl(0, 0%, 84%);
+  --sidebar-ring: hsl(200, 100%, 40%);
+}
+
 @layer base {
   * {
     @apply border-border;
